@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Instrument Serif", Georgia, "Times New Roman", serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --color-bg: #0c0c0d;
+  --color-surface: #141416;
+  --color-elevated: #1c1c20;
+  --color-fg: #eceae6;
+  --color-muted: #8b8d94;
+  --color-subtle: #5c5e66;
+  --color-border: #2a2a30;
+  --color-primary: #c5c8ce;
+  --color-primary-fg: #0c0c0d;
+  --color-danger: #d47878;
+  --color-warn: #c4a35a;
+  --color-ok: #7ea98a;
+  --color-choice: #8aa4c1;
+  --color-syn-id: #f2efe8;
+  --color-syn-tag: #7ea98a;
+  --color-syn-stat: #d4a574;
+  --color-syn-link: #8aa4c1;
+  --color-syn-num: #d4a574;
+  --color-syn-op: #6d6f76;
+  --color-syn-kw: #c5c8ce;
+  --color-syn-comment: #5c5e66;
+  --color-syn-brace: #b7a4c7;
+  --color-paper: #101012;
+
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+}
+
+@layer base {
+  html,
+  body,
+  #app {
+    height: 100%;
+  }
+
+  html {
+    color-scheme: dark;
+    background: var(--color-bg);
+    color: var(--color-fg);
+  }
+
+  body {
+    margin: 0;
+    min-height: 100%;
+    font-family: var(--font-sans);
+    background: var(--color-bg);
+    color: var(--color-fg);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  * {
+    box-sizing: border-box;
+    scrollbar-width: thin;
+    scrollbar-color: #3a3a42 #0c0c0d;
+  }
+
+  *::-webkit-scrollbar {
+    width: 11px;
+    height: 11px;
+    background: #0c0c0d;
+  }
+  *::-webkit-scrollbar-track,
+  *::-webkit-scrollbar-track-piece {
+    background: #0c0c0d;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: #3a3a42;
+    border: 2px solid #0c0c0d;
+    border-radius: 8px;
+  }
+  *::-webkit-scrollbar-thumb:hover {
+    background: #5c5e66;
+  }
+  *::-webkit-scrollbar-corner {
+    background: #0c0c0d;
+  }
+
+  :focus-visible {
+    outline: 2px solid color-mix(in oklab, var(--color-primary) 70%, transparent);
+    outline-offset: 2px;
+  }
+
+  ::selection {
+    background: color-mix(in oklab, var(--color-primary) 28%, transparent);
+  }
+}
+
+.syn-id { color: var(--color-syn-id); }
+.syn-tag { color: var(--color-syn-tag); }
+.syn-stat { color: var(--color-syn-stat); }
+.syn-link { color: var(--color-syn-link); }
+.syn-num { color: var(--color-syn-num); }
+.syn-op { color: var(--color-syn-op); }
+.syn-kw { color: var(--color-syn-kw); font-weight: 500; }
+.syn-comment { color: var(--color-syn-comment); font-style: italic; }
+.syn-brace { color: var(--color-syn-brace); }
+.syn-plain { color: var(--color-muted); }
+.underline-error { text-decoration: underline wavy var(--color-danger); }
+.underline-warning { text-decoration: underline wavy var(--color-warn); }

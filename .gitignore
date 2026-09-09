@@ -1,0 +1,12 @@
+node_modules/
+.vercel/
+.tanstack/
+.vite/
+*.tsbuildinfo
+.env
+.env.*
+!.env.example
+coverage/
+dist/
+*.log
+screenshots/
