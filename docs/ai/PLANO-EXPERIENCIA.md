@@ -2,6 +2,8 @@
 
 > Depois de S1–S8. Traduz a plataforma Allegory (12 camadas) e o documento *Experiência Completa — Jogador e Autor* para o **idioma Lume**.
 > **Não é um segundo motor.** Um só `findMatchingRule`. Rewind = replay. Sem ECS, sem Laws, sem leilão, sem embeddings, sem LLM na narrativa.
+>
+> **Estado:** E1–E12 **feitas**. Caderno em linguagem humana → [PLANO-CADERNO.md](PLANO-CADERNO.md).
 
 **Como usar este ficheiro:** cada fase En é um pedido futuro do tipo *«faça agora Fase En, de forma completa, sem mais e sem menos»*. Este plano **não implementa**. Só descreve.
 

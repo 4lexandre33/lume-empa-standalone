@@ -67,12 +67,14 @@ export interface IdeStoreActions {
   openExample: (id: string) => void;
   openProject: (id: string) => void;
   importProject: (raw: unknown) => void;
+  importNotebooks: (incoming: string) => void;
   startGuide: () => void;
   skipGuide: () => void;
   dismissOnboarding: () => void;
   setEntities: (source: string) => void;
   setTaxonomy: (source: string) => void;
   setRules: (source: string) => void;
+  setNotebooks: (source: string) => void;
   setName: (name: string) => void;
   setPlayerId: (id: string) => void;
   setExtra: (id: string, key: string, value: string) => void;

@@ -42,6 +42,24 @@ describe("Sift", () => {
     assert.equal(bannerOf(sift.match([], patterns)), "");
   });
 
+  it("keeps significância on extra and only uses it in the banner", () => {
+    const patterns = parsePadrao(`PADRAO alto
+  eventos: A, B
+  nome: Alto
+  extra: weight=0.9
+
+PADRAO baixo
+  eventos: A, B
+  nome: Baixo
+  significancia: 0.1
+`);
+    assert.equal(patterns[0]?.extra?.weight, "0.9");
+    assert.equal(patterns[1]?.extra?.weight, "0.1");
+    const hits = sift.match([{ triggerId: "A" }, { triggerId: "B" }], patterns);
+    assert.equal(hits.length, 2);
+    assert.equal(bannerOf(hits), "Alto · Baixo");
+  });
+
   it("reconstructs hits from history subsequence; rewind drops them; world intact", async () => {
     const seen: string[] = [];
     core.on(StorySiftedEvent, (evt) => {

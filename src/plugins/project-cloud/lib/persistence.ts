@@ -42,7 +42,7 @@ export async function listProjects(customSql?: Sql): Promise<ProjectIndexEntry[]
 export async function loadProject(id: string, customSql?: Sql): Promise<Project | null> {
   const sql = customSql ?? (await getSql());
   const rows = await sql<Record<string, unknown>>`
-    select id, name, version, format_version, entities_source, taxonomy_source, rules_source, extras, settings,
+    select id, name, version, format_version, entities_source, taxonomy_source, rules_source, notebooks_source, extras, settings,
            created_at::text as created_at, updated_at::text as updated_at
     from lume_projects where id = ${id} limit 1
   `;
@@ -61,10 +61,10 @@ export async function saveProject(project: WireProject | Project, customSql?: Sq
   p.meta.updatedAt = new Date().toISOString();
 
   await sql`
-    insert into lume_projects (id, name, version, format_version, entities_source, taxonomy_source, rules_source, extras, settings, created_at, updated_at)
+    insert into lume_projects (id, name, version, format_version, entities_source, taxonomy_source, rules_source, notebooks_source, extras, settings, created_at, updated_at)
     values (
       ${p.meta.id}, ${p.meta.name}, ${p.meta.version}, ${p.formatVersion},
-      ${p.entitiesSource}, ${p.taxonomySource}, ${p.rulesSource}, ${JSON.stringify(p.extras)}::jsonb, ${JSON.stringify(p.settings)}::jsonb,
+      ${p.entitiesSource}, ${p.taxonomySource}, ${p.rulesSource}, ${p.notebooksSource}, ${JSON.stringify(p.extras)}::jsonb, ${JSON.stringify(p.settings)}::jsonb,
       ${p.meta.createdAt}::timestamptz, ${p.meta.updatedAt}::timestamptz
     )
     on conflict (id) do update set
@@ -74,6 +74,7 @@ export async function saveProject(project: WireProject | Project, customSql?: Sq
       entities_source = excluded.entities_source,
       taxonomy_source = excluded.taxonomy_source,
       rules_source = excluded.rules_source,
+      notebooks_source = excluded.notebooks_source,
       extras = excluded.extras,
       settings = excluded.settings,
       updated_at = excluded.updated_at

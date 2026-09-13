@@ -43,6 +43,7 @@ A IA consulta esta tabela **antes** de grep. Uma linha basta.
 | debug beat, candidatos, lastRule, spec, vivo | narrative-engine + ide-ui | `narrative-engine/lib/beat.ts`, `ide-ui/lib/components/BeatDebug.tsx` |
 | índice, beco, topic, conv, canal, vivo sem regra | narrative-engine + ide-ui | `narrative-engine/lib/world-index.ts`, `ide-ui/lib/components/WorldIndex.tsx` |
 | play-skin, vista jogador, >, dry-run, score | ide-ui + nlp | `ide-ui/lib/components/PlaySkin.tsx`, `intent-engine/lib/notices.ts` |
+| caderno, páginas, linguagem humana, compile notebook, Quando narre | notebook | `notebook/lib/notebook.ts` · [PLANO-CADERNO.md](PLANO-CADERNO.md) |
 | export play, ligação sessão, #play, #sessao | narrative-engine + ide-ui | `narrative-engine/lib/play-bundle.ts`, `ide-ui/lib/play-html.ts` |
 | dry-run, o que aconteceria, worldDiff | dry-run | `dry-run/lib/dry-run.ts`, `narrative-engine/lib/dry-run.ts` |
 | process, WAIT, TICK, fuse, remaining | process | `process/lib/process.ts` |

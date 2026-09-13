@@ -139,6 +139,12 @@ import {
   type NlpService
 } from './plugins/nlp/index.ts';
 
+import {
+  NOTEBOOK_MANIFEST,
+  createNotebookPlugin,
+  type NotebookService
+} from './plugins/notebook/index.ts';
+
 import type { RuleEffectsService } from './plugins/narrative-engine/index.ts';
 
 import {
@@ -212,6 +218,7 @@ export interface LumePlatformServices {
   chain: ChainService;
   life: LifeService;
   nlp: NlpService;
+  notebook: NotebookService;
   ideUI: IdeUIService;
   ideComponents: IdeComponentsService;
   ideGuide: IdeGuideService;
@@ -262,6 +269,7 @@ export async function bootLumePlatform(): Promise<{ core: Core; services: LumePl
   core.registerPlugin(CHAIN_MANIFEST, createChainPlugin);
   core.registerPlugin(LIFE_MANIFEST, createLifePlugin);
   core.registerPlugin(NLP_MANIFEST, createNlpPlugin);
+  core.registerPlugin(NOTEBOOK_MANIFEST, createNotebookPlugin);
   core.registerPlugin(IDE_UI_MANIFEST, createIdeUIPlugin);
   core.registerPlugin(IDE_GUIDE_MANIFEST, createIdeGuidePlugin);
   core.registerPlugin(IDE_SETTINGS_MANIFEST, createIdeSettingsPlugin);
@@ -291,6 +299,7 @@ export async function bootLumePlatform(): Promise<{ core: Core; services: LumePl
   await core.activatePlugin('lume-chain');
   await core.activatePlugin('lume-life');
   await core.activatePlugin('lume-nlp');
+  await core.activatePlugin('lume-notebook');
   await core.activatePlugin('lume-ide-ui');
   await core.activatePlugin('lume-ide-guide');
   await core.activatePlugin('lume-ide-settings');
@@ -337,6 +346,7 @@ export function getPlatformServices(core: Core): LumePlatformServices {
     chain: core.getService<ChainService>('Chain'),
     life: core.getService<LifeService>('Life'),
     nlp: core.getService<NlpService>('Nlp'),
+    notebook: core.getService<NotebookService>('Notebook'),
     ideUI: core.getService<IdeUIService>('IdeUI'),
     ideComponents: core.getService<IdeComponentsService>('IdeComponents'),
     ideGuide: core.getService<IdeGuideService>('IdeGuide'),

@@ -12,6 +12,7 @@
 - `lib/beat.ts` — `lastBeat` (intent, regra, candidatos, efeitos, vivo)
 - `lib/world-index.ts` — índice + avisos de beco (topic/conv/canal/vivo)
 - `lib/play-bundle.ts` — bundle play + hash `#play=` / `#sessao=`
+- `lib/project.ts` — `notebooksSource` (caderno; compile vazio até C2)
 - `types.ts` — contratos públicos
 
 ## Provides

@@ -22,6 +22,7 @@ export type Project = {
   entitiesSource: string;
   taxonomySource: string;
   rulesSource: string;
+  notebooksSource: string;
   extras: Record<string, Record<string, string>>;
   settings: ProjectSettings;
 };
@@ -59,6 +60,7 @@ narrativa: "Uma sala vazia. A história começa aqui."
 `;
 
 export const BLANK_TAXONOMY = "";
+export const BLANK_NOTEBOOKS = "";
 
 export function nowIso(): string {
   return new Date().toISOString();
@@ -75,6 +77,7 @@ export function cloneProject(project: Project): Project {
     entitiesSource: project.entitiesSource,
     taxonomySource: project.taxonomySource,
     rulesSource: project.rulesSource,
+    notebooksSource: project.notebooksSource,
     extras: Object.fromEntries(Object.entries(project.extras).map(([k, v]) => [k, { ...v }])),
     settings: cloneSettings(project.settings),
   };
@@ -133,7 +136,7 @@ function coerceTree(raw: unknown): SidebarTree | undefined {
 
 export function createProject(
   name: string,
-  seed?: Partial<Pick<Project, "entitiesSource" | "taxonomySource" | "rulesSource" | "extras" | "settings">> & { id?: string },
+  seed?: Partial<Pick<Project, "entitiesSource" | "taxonomySource" | "rulesSource" | "notebooksSource" | "extras" | "settings">> & { id?: string },
 ): Project {
   const createdAt = nowIso();
   return {
@@ -142,6 +145,7 @@ export function createProject(
     entitiesSource: seed?.entitiesSource ?? BLANK_ENTITIES,
     taxonomySource: seed?.taxonomySource ?? BLANK_TAXONOMY,
     rulesSource: seed?.rulesSource ?? BLANK_RULES,
+    notebooksSource: seed?.notebooksSource ?? BLANK_NOTEBOOKS,
     extras: seed?.extras ? { ...seed.extras } : {},
     settings: {
       playerEntityId: seed?.settings?.playerEntityId ?? "JOGADOR",
@@ -183,7 +187,7 @@ export function diagnose(project: Project): { compiled: CompileProjectResult; is
 }
 
 export function fingerprintProject(project: Project): string {
-  return `${project.entitiesSource.length}:${project.taxonomySource.length}:${project.rulesSource.length}:${project.meta.updatedAt}:${project.meta.name}`;
+  return `${project.entitiesSource.length}:${project.taxonomySource.length}:${project.rulesSource.length}:${project.notebooksSource.length}:${project.meta.updatedAt}:${project.meta.name}`;
 }
 
 export function coerceProject(raw: unknown): Project {
@@ -204,6 +208,7 @@ export function coerceProject(raw: unknown): Project {
     entitiesSource: migrateLegacyTags(typeof p.entitiesSource === "string" ? p.entitiesSource : BLANK_ENTITIES),
     taxonomySource: typeof p.taxonomySource === "string" ? p.taxonomySource : BLANK_TAXONOMY,
     rulesSource: migrateLegacyTags(typeof p.rulesSource === "string" ? p.rulesSource : BLANK_RULES),
+    notebooksSource: typeof p.notebooksSource === "string" ? p.notebooksSource : BLANK_NOTEBOOKS,
     extras: extrasIn,
     settings: {
       playerEntityId: typeof settings.playerEntityId === "string" ? settings.playerEntityId : "JOGADOR",
@@ -227,6 +232,7 @@ export function projectFromCloudRow(row: Record<string, unknown>): Project {
     entitiesSource: row.entities_source,
     taxonomySource: row.taxonomy_source,
     rulesSource: row.rules_source,
+    notebooksSource: row.notebooks_source,
     extras: row.extras,
     settings: row.settings,
   });

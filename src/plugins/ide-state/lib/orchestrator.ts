@@ -48,6 +48,8 @@ import {
   DEFAULT_IDE_SETTINGS
 } from '../../project-cloud/lib/persistence.ts';
 import { readSessionDraft, writeSessionDraft } from './draft.ts';
+import { applyNotebookToProject } from '../../notebook/lib/pages.ts';
+import { importCaderno } from '../../notebook/lib/share.ts';
 import type { IdeStore, SourceFocus } from '../types.ts';
 import { commandFromChoice, executeIntent, resolveIntent, suggestIntent, scopeFromHost, looksLikeIntent, DRY_RUN_NOTICE, HUMAN_FALLBACK, type QueryFn } from '../../intent-engine/lib/index.ts';
 import { addFolder, deleteFolder, placeItem, renameFolder } from './tree.ts';
@@ -231,7 +233,7 @@ export function createIdeZustandStore(
         const { project } = get();
         if (!project) return;
         try {
-          const { compiled, issues } = diagnose(project);
+          const { compiled, issues } = diagnose(applyNotebookToProject(project));
           set({ compiled, issues, fingerprint: fp(project) });
           if (onEventHook) onEventHook('lume:project-compiled', { projectId: project.meta.id, result: compiled });
         } catch (err) {
@@ -354,6 +356,12 @@ export function createIdeZustandStore(
         get().persist();
       },
 
+      importNotebooks: (incoming) => {
+        const { project } = get();
+        if (!project) return;
+        get().setNotebooks(importCaderno(project.notebooksSource, incoming));
+      },
+
       startGuide: () => set({ screen: 'guide' }),
 
       dismissOnboarding: () => {
@@ -403,6 +411,18 @@ export function createIdeZustandStore(
         set({ project: { ...project, rulesSource: source }, tab: 'rules' });
         remember();
         if (onEventHook) onEventHook('lume:user-edited-source', { projectId: project.meta.id, sourceType: 'rules', newSource: source });
+        if (compileTimer) clearTimeout(compileTimer);
+        compileTimer = setTimeout(() => {
+          get().recompile();
+          get().persist();
+        }, 280);
+      },
+
+      setNotebooks: (source) => {
+        const { project } = get();
+        if (!project) return;
+        set({ project: { ...project, notebooksSource: source } });
+        remember();
         if (compileTimer) clearTimeout(compileTimer);
         compileTimer = setTimeout(() => {
           get().recompile();

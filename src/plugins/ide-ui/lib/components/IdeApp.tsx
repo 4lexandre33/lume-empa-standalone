@@ -15,8 +15,12 @@ import { Reference } from "./Reference.tsx";
 import { WorldIndex } from "./WorldIndex.tsx";
 import { PlaySkin } from "./PlaySkin.tsx";
 import { ExtPluginsWindow } from "./ExtPluginsWindow.tsx";
+import { NotebookNotes } from "./NotebookNotes.tsx";
+import { NotebookPane } from "./NotebookPane.tsx";
 import { useIdeStore } from "../../../ide-state/lib/orchestrator.ts";
 import { toWireProject, buildPlayBundle, encodeSessionHash } from "../../../narrative-engine/lib/index.ts";
+import { applyNotebookToProject } from "../../../notebook/lib/pages.ts";
+import { exportCadernoMd, cadernoFilename } from "../../../notebook/lib/share.ts";
 import { staticPlayHtml, playShareUrl, sessionShareUrl } from "../play-html.ts";
 import { cn } from "../utils.ts";
 import { ensureExtHost } from "../../../ext-host/lib/ensure.ts";
@@ -91,6 +95,7 @@ export function IdeApp() {
   const resetPreview = useIdeStore((s) => s.resetPreview);
   const startGuide = useIdeStore((s) => s.startGuide);
   const importProject = useIdeStore((s) => s.importProject);
+  const importNotebooks = useIdeStore((s) => s.importNotebooks);
   const exportSessionJson = useIdeStore((s) => s.exportSessionJson);
   const importSessionJson = useIdeStore((s) => s.importSessionJson);
   const openPlay = useIdeStore((s) => s.openPlay);
@@ -101,6 +106,7 @@ export function IdeApp() {
   const [showExt, setShowExt] = useState(false);
   const barRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const cadernoRef = useRef<HTMLInputElement>(null);
   const sessionRef = useRef<HTMLInputElement>(null);
 
   useLayoutEffect(() => {
@@ -179,9 +185,24 @@ export function IdeApp() {
     return project?.meta.name.replace(/\s+/g, "-").toLowerCase() || "historia";
   }
 
+  function exportCadernoFile() {
+    if (!project) return;
+    const md = exportCadernoMd(project.notebooksSource ?? "");
+    if (!md.trim()) {
+      setToast("Sem caderno para exportar.");
+      return;
+    }
+    const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = cadernoFilename(project.meta.name);
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
   function exportPlayHtml() {
     if (!project) return;
-    const bundle = buildPlayBundle(project, game);
+    const bundle = buildPlayBundle(applyNotebookToProject(project), game);
     const url = playShareUrl(window.location.origin, window.location.pathname, bundle);
     const blob = new Blob([staticPlayHtml(bundle, url)], { type: "text/html" });
     const a = document.createElement("a");
@@ -280,6 +301,8 @@ export function IdeApp() {
                     <MenuItem label="Guardar" kbd="⌘S" onSelect={() => closeAnd(saveNow)} />
                     <MenuItem label="Exportar JSON" onSelect={() => closeAnd(exportJson)} />
                     <MenuItem label="Importar JSON…" onSelect={() => closeAnd(() => fileRef.current?.click())} />
+                    <MenuItem label="Exportar caderno" onSelect={() => closeAnd(exportCadernoFile)} />
+                    <MenuItem label="Importar caderno…" onSelect={() => closeAnd(() => cadernoRef.current?.click())} />
                     <div className="my-1 h-px bg-border" />
                     <MenuItem label="Apagar esta história" danger onSelect={() => closeAnd(deleteCurrent)} />
                   </>
@@ -456,6 +479,18 @@ export function IdeApp() {
         }}
       />
       <input
+        ref={cadernoRef}
+        type="file"
+        accept=".lume.caderno.md,.md,text/markdown"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (!f) return;
+          void f.text().then((t) => importNotebooks(t));
+        }}
+      />
+      <input
         ref={sessionRef}
         type="file"
         accept="application/json,.json"
@@ -497,49 +532,70 @@ function EditorColumn({
   setTaxonomy: (s: string) => void;
   setRules: (s: string) => void;
 }) {
+  const [motor, setMotor] = useState(false);
   return (
     <div className="flex h-full min-h-0 flex-col bg-bg">
       <div className="flex h-9 shrink-0 items-center gap-1 border-b border-border px-2">
-        {(
-          [
-            ["entities", "Entidades"],
-            ["taxonomy", "Taxonomia"],
-            ["rules", "Regras"],
-            ["config", "Config"],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setTab(id)}
-            className={cn("h-7 rounded-xs px-2.5 text-sm", tab === id ? "bg-elevated text-fg" : "text-muted hover:text-fg")}
-          >
-            {label}
-          </button>
-        ))}
-        {tab === "entities" ? (
-          <span className="ml-auto hidden font-mono text-[10px] text-subtle sm:inline">MAIÚSCULAS + . + Enter monta o bloco</span>
-        ) : null}
-        {tab === "taxonomy" ? (
-          <span className="ml-auto hidden items-center gap-1 font-mono text-[10px] text-subtle sm:flex">
-            <GitBranch className="size-3" /> filho → pai · um pai só
-          </span>
-        ) : null}
-        {tab === "rules" ? (
-          <span className="ml-auto hidden items-center gap-1 font-mono text-[10px] text-subtle sm:flex">
-            <BookOpen className="size-3" /> Tab confirma com espaço
-          </span>
-        ) : null}
-        {tab === "config" ? (
-          <span className="ml-auto hidden items-center gap-1 text-[10px] text-subtle sm:flex">
-            <GraduationCap className="size-3" /> name não é tag
-          </span>
-        ) : null}
+        <span className="px-1 font-display text-sm">Caderno</span>
+        <button
+          type="button"
+          onClick={() => setMotor((cur) => !cur)}
+          className={cn("ml-auto h-7 rounded-xs px-2.5 text-sm", motor ? "bg-elevated text-fg" : "text-muted hover:text-fg")}
+        >
+          {motor ? "Ocultar motor" : "Mostrar motor"}
+        </button>
       </div>
-      {tab === "entities" ? <SourceEditor kind="entities" value={project.entitiesSource} onChange={setEntities} /> : null}
-      {tab === "taxonomy" ? <TaxonomyPane value={project.taxonomySource} onChange={setTaxonomy} /> : null}
-      {tab === "rules" ? <SourceEditor kind="rules" value={project.rulesSource} onChange={setRules} /> : null}
-      {tab === "config" ? <ConfigPane /> : null}
+      {!motor ? (
+        <div className="min-h-0 flex-1">
+          <NotebookPane />
+        </div>
+      ) : null}
+      {motor ? (
+        <>
+          <div className="flex h-9 shrink-0 items-center gap-1 border-b border-border px-2">
+            {(
+              [
+                ["entities", "Entidades"],
+                ["taxonomy", "Taxonomia"],
+                ["rules", "Regras"],
+                ["config", "Config"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                onClick={() => setTab(id)}
+                className={cn("h-7 rounded-xs px-2.5 text-sm", tab === id ? "bg-elevated text-fg" : "text-muted hover:text-fg")}
+              >
+                {label}
+              </button>
+            ))}
+            {tab === "entities" ? (
+              <span className="ml-auto hidden font-mono text-[10px] text-subtle sm:inline">MAIÚSCULAS + . + Enter monta o bloco</span>
+            ) : null}
+            {tab === "taxonomy" ? (
+              <span className="ml-auto hidden items-center gap-1 font-mono text-[10px] text-subtle sm:flex">
+                <GitBranch className="size-3" /> filho → pai · um pai só
+              </span>
+            ) : null}
+            {tab === "rules" ? (
+              <span className="ml-auto hidden items-center gap-1 font-mono text-[10px] text-subtle sm:flex">
+                <BookOpen className="size-3" /> Tab confirma com espaço
+              </span>
+            ) : null}
+            {tab === "config" ? (
+              <span className="ml-auto hidden items-center gap-1 text-[10px] text-subtle sm:flex">
+                <GraduationCap className="size-3" /> name não é tag
+              </span>
+            ) : null}
+          </div>
+          {tab === "entities" ? <SourceEditor kind="entities" value={project.entitiesSource} onChange={setEntities} /> : null}
+          {tab === "taxonomy" ? <TaxonomyPane value={project.taxonomySource} onChange={setTaxonomy} /> : null}
+          {tab === "rules" ? <SourceEditor kind="rules" value={project.rulesSource} onChange={setRules} /> : null}
+          {tab === "config" ? <ConfigPane /> : null}
+          <NotebookNotes />
+        </>
+      ) : null}
     </div>
   );
 }

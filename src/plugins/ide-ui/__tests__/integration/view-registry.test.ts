@@ -42,6 +42,6 @@ describe('IDE View Registry & Rendering Service', () => {
 
   it('lists registered views exhaustively', () => {
     const views = pluginUi.listRegisteredViews();
-    assert.equal(views.length, 15);
+    assert.equal(views.length, 16);
   });
 });

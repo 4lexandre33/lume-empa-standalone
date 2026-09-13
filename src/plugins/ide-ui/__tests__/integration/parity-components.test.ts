@@ -29,7 +29,7 @@ describe('IDE UI Component Parity (View Registry)', () => {
 
   it('maintains 100% component registry for all 10 visual surfaces and menus', () => {
     const views = pluginUi.listRegisteredViews();
-    assert.equal(views.length, 15);
+    assert.equal(views.length, 16);
     assert.deepEqual(views, [
       'IdeApp',
       'SourceEditor',
@@ -45,7 +45,8 @@ describe('IDE UI Component Parity (View Registry)', () => {
       'WorldMap',
       'BeatDebug',
       'WorldIndex',
-      'PlaySkin'
+      'PlaySkin',
+      'NotebookPane'
     ]);
 
     const menus = pluginUi.getAvailableMenus();

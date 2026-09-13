@@ -9,6 +9,6 @@ Navegar por índice, não por pasta. **Não carregar todos os docs** — só o d
 5. Invariantes só se for mexer no motor: [docs/ai/INVARIANTES.md](docs/ai/INVARIANTES.md)
 
 Mapa completo e playbook existem mas **não se lêem em toda a chamada**:
-[docs/ai/MAPA.md](docs/ai/MAPA.md) · [docs/ai/EFICIENCIA.md](docs/ai/EFICIENCIA.md)
+[docs/ai/MAPA.md](docs/ai/MAPA.md) · [docs/ai/EFICIENCIA.md](docs/ai/EFICIENCIA.md) · caderno humano: [docs/ai/PLANO-CADERNO.md](docs/ai/PLANO-CADERNO.md)
 
 Proibido: `list_dir src/`, grep sem `path` de plugin, segundo motor, copiar Elm/Allegory/ECS, duplicar UI em `src/components/ide/`.

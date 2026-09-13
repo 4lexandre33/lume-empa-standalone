@@ -105,7 +105,7 @@ export interface NarrativeEngineService {
   diagnose(project: Project): { compiled: CompileProjectResult; issues: Issue[] };
   createProject(
     name: string,
-    seed?: Partial<Pick<Project, "entitiesSource" | "taxonomySource" | "rulesSource" | "extras" | "settings">> & { id?: string }
+    seed?: Partial<Pick<Project, "entitiesSource" | "taxonomySource" | "rulesSource" | "notebooksSource" | "extras" | "settings">> & { id?: string }
   ): Project;
   cloneProject(project: Project): Project;
   fingerprintProject(project: Project): string;

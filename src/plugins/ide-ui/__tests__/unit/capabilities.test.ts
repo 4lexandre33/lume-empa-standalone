@@ -45,6 +45,7 @@ describe('IDE UI Plugin Capabilities', () => {
     assert.ok(views.includes('BeatDebug'));
     assert.ok(views.includes('WorldIndex'));
     assert.ok(views.includes('PlaySkin'));
+    assert.ok(views.includes('NotebookPane'));
 
     // 2. Component retrieval & registration
     const DummyApp = () => null;
@@ -82,7 +83,7 @@ describe('IDE UI Plugin Capabilities', () => {
     assert.ok(compService);
 
     const views = compService.listViews();
-    assert.equal(views.length, 15);
+    assert.equal(views.length, 16);
     assert.ok(views.includes('Welcome'));
   });
 });

@@ -3,7 +3,7 @@
 Zustand: projeto aberto, compile, preview, persistência, **pastas da sidebar**.
 
 ## Abrir
-- `lib/orchestrator.ts` — store, preview, skein, sessão
+- `lib/orchestrator.ts` — store, preview, skein, sessão, `setNotebooks`
 - `lib/tree.ts` — ENTITIES/RULES sections, folders, placements
 - `types.ts` — IdeStore
 

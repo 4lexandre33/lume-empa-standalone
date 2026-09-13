@@ -22,7 +22,8 @@ export const REGISTERED_VIEW_NAMES: (keyof IdeComponentsMap)[] = [
   'WorldMap',
   'BeatDebug',
   'WorldIndex',
-  'PlaySkin'
+  'PlaySkin',
+  'NotebookPane'
 ];
 
 const componentStore: Partial<IdeComponentsMap> = {};

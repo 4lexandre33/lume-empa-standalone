@@ -39,6 +39,7 @@ describe('Project Cloud Capabilities', () => {
     assert.equal(loaded.meta.name, 'Cloud Capability Test');
     assert.equal(loaded.entitiesSource, testProject.entitiesSource);
     assert.equal(loaded.taxonomySource, testProject.taxonomySource);
+    assert.equal(loaded.notebooksSource, "");
 
     // 4. Delete
     const deleteRes = await cloudService.deleteProject(testProject.meta.id);

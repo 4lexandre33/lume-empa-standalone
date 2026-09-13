@@ -10,7 +10,7 @@ describe('Lume EMPA Platform Final Cutover & Kernel Verification', () => {
 
     // Verify Active Plugins
     const activePlugins = core.listActivePlugins();
-    assert.equal(activePlugins.length, 27);
+    assert.equal(activePlugins.length, 28);
     assert.ok(activePlugins.includes('lume-narrative-engine'));
     assert.ok(activePlugins.includes('lume-project-cloud'));
     assert.ok(activePlugins.includes('lume-ide-state'));
@@ -32,6 +32,7 @@ describe('Lume EMPA Platform Final Cutover & Kernel Verification', () => {
     assert.ok(activePlugins.includes('lume-chain'));
     assert.ok(activePlugins.includes('lume-life'));
     assert.ok(activePlugins.includes('lume-nlp'));
+    assert.ok(activePlugins.includes('lume-notebook'));
     assert.ok(activePlugins.includes('lume-ide-ui'));
     assert.ok(activePlugins.includes('lume-ide-guide'));
     assert.ok(activePlugins.includes('lume-ide-settings'));
@@ -67,6 +68,7 @@ describe('Lume EMPA Platform Final Cutover & Kernel Verification', () => {
     assert.ok(services.chain);
     assert.ok(services.life);
     assert.ok(services.nlp);
+    assert.ok(services.notebook);
     assert.ok(services.ideUI);
     assert.ok(services.ideComponents);
     assert.ok(services.ideGuide);
@@ -100,7 +102,7 @@ describe('Lume EMPA Platform Final Cutover & Kernel Verification', () => {
     assert.ok(Array.isArray(services.ruleSemantics.classify(startRule)));
 
     const views = services.ideUI.listRegisteredViews();
-    assert.equal(views.length, 15);
+    assert.equal(views.length, 16);
 
     const kit = services.extHost.buildKit();
     const kitAgain = services.extHost.buildKit();

@@ -48,6 +48,7 @@ export interface IdeComponentsMap {
   BeatDebug: React.ComponentType;
   WorldIndex: React.ComponentType<{ onClose: () => void }>;
   PlaySkin: React.ComponentType;
+  NotebookPane: React.ComponentType;
 }
 
 export interface IdeUIService {

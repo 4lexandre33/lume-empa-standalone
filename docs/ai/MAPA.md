@@ -15,12 +15,12 @@ Este ficheiro é o **índice**. Código vive nos plugins.
 
 Plugins **não** se conhecem. Falam por capability (RPC) e evento (facto). Dívida: alguns `import` diretos de `*/lib` — não expandir.
 
-## Boot (27 plugins)
+## Boot (28 plugins)
 
 ```
 narrative-engine
   → project-cloud → ide-state → intent-engine
-  → rule-semantics → world-events → knowledge → agency → spatial → senses → kit-adventure → kit-social → kit-channel → kit-combat → kit-prose → sift → dry-run → process → chain → life → nlp
+  → rule-semantics → world-events → knowledge → agency → spatial → senses → kit-adventure → kit-social → kit-channel → kit-combat → kit-prose → sift → dry-run → process → chain → life → nlp → notebook
   → ide-ui → ide-guide → ide-settings → entity-extras → multiplayer → ext-host
 ```
 
@@ -52,6 +52,7 @@ narrative-engine
 | Chain | lume-chain | `src/plugins/chain/lib/chain.ts` |
 | Life | lume-life | `src/plugins/life/lib/life.ts` |
 | Nlp | lume-nlp | `src/plugins/nlp/lib/nlp.ts` |
+| Notebook | lume-notebook | `src/plugins/notebook/lib/notebook.ts` |
 | IdeState / IdeStore | lume-ide-state | `src/plugins/ide-state/lib/orchestrator.ts` |
 | IdeUI / IdeComponents | lume-ide-ui | `src/plugins/ide-ui/` |
 | ProjectCloud / ProjectHistory | lume-project-cloud | `src/plugins/project-cloud/lib/persistence.ts` |
@@ -102,6 +103,7 @@ Pedido do jogador
   → (índice) salas/objectos/agentes/regras/traits/canais/padrões; W010–W013
   → (play) vista sem IDE; `>`; aviso dry-run; banner; fallback humano
   → (partilha) HTML play-skin; `#play=` bundle; `#sessao=` replay; `.lume.json` / `.sessao.json`
+  → (caderno) `notebooksSource`; `compileNotebook("")` vazio; capability `Notebook`
   → (nlp) frase livre → `intent.*` se não for pontilhado; falha fechado
 ```
 
@@ -127,6 +129,7 @@ Pedido do jogador
 | Índice / becos | `narrative-engine/lib/world-index.ts` + `ide-ui/lib/components/WorldIndex.tsx` |
 | Play-skin | `ide-ui/lib/components/PlaySkin.tsx` + `CommandBar` `>` |
 | Partilha play/sessão | `narrative-engine/lib/play-bundle.ts` + `ide-ui/lib/play-html.ts` |
+| Caderno (C1) | `notebook/lib/notebook.ts` — compile vazio; `project.notebooksSource` |
 | Nlp frase → intent.* | `nlp/lib/nlp.ts` |
 | Taxonomia | `taxonomy.ts` |
 | Query | `query.ts` |

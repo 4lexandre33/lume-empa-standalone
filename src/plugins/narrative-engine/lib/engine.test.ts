@@ -444,6 +444,65 @@ describe("taxonomy project shape", () => {
   });
 });
 
+describe("notebook project shape", () => {
+  it("coerces old projects without notebooksSource", () => {
+    const p = coerceProject({
+      formatVersion: 2,
+      meta: { id: "x", name: "velho", version: 1, createdAt: "2020-01-01", updatedAt: "2020-01-01" },
+      entitiesSource: "JOGADOR.{ tags: agent; stats: ; links: ; }\nstart()\n",
+      rulesSource: "ON: start\nnarrativa: \"oi\"\n",
+    });
+    assert.equal(p.notebooksSource, "");
+    assert.equal(compileProject(p).errors.length, 0);
+  });
+
+  it("fingerprint includes notebooks length", () => {
+    const a = createProject("a", { notebooksSource: "" });
+    const b = createProject("a", { notebooksSource: "CADERNO: teste\n" });
+    a.meta.updatedAt = b.meta.updatedAt;
+    assert.notEqual(fingerprintProject(a), fingerprintProject(b));
+  });
+
+  it("toWireProject round-trips notebooksSource", () => {
+    const p = createProject("export", { notebooksSource: "CADERNO: A Caverna\n" });
+    const wire = toWireProject(p);
+    assert.equal(wire.notebooksSource, "CADERNO: A Caverna\n");
+    const back = coerceProject(JSON.parse(JSON.stringify(wire)));
+    assert.equal(back.notebooksSource, "CADERNO: A Caverna\n");
+  });
+
+  it("projectFromCloudRow reads notebooks_source and treats missing as empty", () => {
+    const withNb = projectFromCloudRow({
+      id: "n1",
+      name: "caderno",
+      version: 1,
+      format_version: 2,
+      entities_source: "JOGADOR.{ tags: agent; stats: ; links: ; }\nstart()\n",
+      taxonomy_source: "",
+      rules_source: "ON: start\nnarrativa: \"oi\"\n",
+      notebooks_source: "CADERNO: X\n",
+      extras: {},
+      settings: { playerEntityId: "JOGADOR", debug: true },
+      created_at: "2026-01-01T00:00:00.000Z",
+      updated_at: "2026-01-01T00:00:00.000Z",
+    });
+    assert.equal(withNb.notebooksSource, "CADERNO: X\n");
+    const missing = projectFromCloudRow({
+      id: "old",
+      name: "velho",
+      version: 1,
+      format_version: 1,
+      entities_source: "JOGADOR.{ tags: agent; stats: ; links: ; }\nstart()\n",
+      rules_source: "ON: start\nnarrativa: \"oi\"\n",
+      extras: {},
+      settings: { playerEntityId: "JOGADOR" },
+      created_at: "2020-01-01",
+      updated_at: "2020-01-01",
+    });
+    assert.equal(missing.notebooksSource, "");
+  });
+});
+
 describe("taxonomy explain, tree, impact, direct mode", () => {
   const project = createProject("why", {
     entitiesSource: `GOBLIN.{ tags: goblin; stats: health=80; links: ; }

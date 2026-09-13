@@ -32,7 +32,7 @@ Se um pedido usar a coluna da esquerda, traduzir e **não procurar** Component/L
 | Debug L1–L11 | um painel `BeatDebug`: intent, `lastBeat.ruleId`, candidatos+spec, efeitos, vivo. Sem 12 motores | runtime + ide-ui |
 | dramaturge / índice / beco | `buildWorldIndex` + W010 topic sem ask, W011 `links.conv`, W012 canal sem 2 estados, W013 vivo sem reacção. Sem gerador de regras | world-index |
 | play-skin / Sharpee browser | `PlaySkin`: título, turno, score opcional, prosa, `>`, banner, aviso dry-run. Sem download nativo, sem embeddings | ide-ui |
-| publicar / partilhar sessão | HTML estático do play; `#play=` bundle; `#sessao=` replay; JSON de projecto/sessão. Sem marketplace, sem analytics Viv | play-bundle |
+| caderno / notebook / linguagem humana | `notebooksSource` + `compileNotebook`. C1: compile vazio. Não é segundo matcher. C2+ em [PLANO-CADERNO.md](PLANO-CADERNO.md) | notebook |
 | ConvNode / TopicEntry / ASK ABOUT | tag `topic`; `talk`/`ask`/`tell`/`bye`; estado `falando`. Sem ConversationEngine | kit-adventure |
 | Dry run / “can I” / transação | `DryRun.dryRun(state, triggerId)` — mesmo matcher, DO no clone, efeitos listados. Sem rollback, sem NLP | dry-run |
 | TIME / fuse / daemon / tick | `WAIT n.id` + `TICK`; entidade `tags: process` + `remaining`. Sem relógio, sem `TIME()` Elm | process |
