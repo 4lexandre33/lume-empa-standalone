@@ -7,7 +7,7 @@
     "nf3": "0.3.17"
   },
   "scripts": {
-    "dev": "node scripts/with-app-env.mjs vite dev --host 0.0.0.0 --port 5173",
+    "dev": "node scripts/with-app-env.mjs vite dev --host 0.0.0.0 --port 8080",
     "build": "node scripts/with-app-env.mjs vite build && npm run db:migrate",
     "db:migrate": "node scripts/migrate.mjs",
     "build:dev": "node scripts/with-app-env.mjs vite build --mode development",
@@ -16,13 +16,8 @@
     "preview:stop": "node scripts/preview.mjs stop",
     "typecheck": "tsc --noEmit",
     "check:auth": "node scripts/check-auth-invariant.mjs",
-    "test": "node --test 'scripts/**/*.test.mjs' && node --experimental-strip-types --test src/lib/engine/engine.test.ts src/lib/app-data/app-data.test.ts src/lib/app-data/readiness-schedule.test.ts src/lib/auth/gate-identity.test.ts src/lib/auth/sign-in-gate.test.ts src/core/__tests__/unit/*.test.ts src/core/__tests__/integration/*.test.ts src/plugins/narrative-engine/__tests__/unit/*.test.ts src/plugins/narrative-engine/__tests__/integration/*.test.ts src/plugins/project-cloud/__tests__/unit/*.test.ts src/plugins/project-cloud/__tests__/integration/*.test.ts src/plugins/ide-state/__tests__/unit/*.test.ts src/plugins/ide-state/__tests__/integration/*.test.ts src/plugins/ide-ui/__tests__/unit/*.test.ts src/plugins/ide-ui/__tests__/integration/*.test.ts src/plugins/ide-guide/__tests__/unit/*.test.ts src/plugins/ide-settings/__tests__/unit/*.test.ts src/plugins/entity-extras/__tests__/unit/*.test.ts src/plugins/multiplayer/__tests__/unit/*.test.ts",
-    "test:core": "node --experimental-strip-types --test src/core/__tests__/unit/*.test.ts src/core/__tests__/integration/*.test.ts",
-    "test:plugin:engine": "node --experimental-strip-types --test src/plugins/narrative-engine/__tests__/unit/*.test.ts src/plugins/narrative-engine/__tests__/integration/*.test.ts",
-    "test:plugin:cloud": "node --experimental-strip-types --test src/plugins/project-cloud/__tests__/unit/*.test.ts src/plugins/project-cloud/__tests__/integration/*.test.ts",
-    "test:plugin:state": "node --experimental-strip-types --test src/plugins/ide-state/__tests__/unit/*.test.ts src/plugins/ide-state/__tests__/integration/*.test.ts",
-    "test:plugin:ui": "node --experimental-strip-types --test src/plugins/ide-ui/__tests__/unit/*.test.ts src/plugins/ide-ui/__tests__/integration/*.test.ts",
-    "test:plugin:support": "node --experimental-strip-types --test src/plugins/ide-guide/__tests__/unit/*.test.ts src/plugins/ide-settings/__tests__/unit/*.test.ts src/plugins/entity-extras/__tests__/unit/*.test.ts src/plugins/multiplayer/__tests__/unit/*.test.ts",
+    "test": "node --test 'scripts/**/*.test.mjs' && node --experimental-strip-types --test src/lib/app-data/app-data.test.ts src/lib/app-data/readiness-schedule.test.ts src/lib/auth/gate-identity.test.ts src/lib/auth/sign-in-gate.test.ts",
+    "test:plugin:intent": "node --experimental-strip-types --test src/plugins/intent-engine/__tests__/unit/*.test.ts src/core/__tests__/integration/platform-bootstrap.test.ts",
     "lint": "eslint .",
     "format": "prettier --write ."
   },

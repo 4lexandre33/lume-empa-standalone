@@ -128,13 +128,13 @@ export class NarrativeEnginePlugin implements IPlugin {
         }
       },
 
-      createGame: (worldModel, rules, playerEntityId, taxonomy) => {
-        return engine.createGame(worldModel, rules, playerEntityId, taxonomy);
+      createGame: (worldModel, rules, playerEntityId, taxonomy, patterns, options) => {
+        return engine.createGame(worldModel, rules, playerEntityId, taxonomy, patterns, options);
       },
 
-      createGameAsync: async (worldModel, rules, playerEntityId, taxonomy) => {
+      createGameAsync: async (worldModel, rules, playerEntityId, taxonomy, patterns, options) => {
         try {
-          const gameState = engine.createGame(worldModel, rules, playerEntityId, taxonomy);
+          const gameState = engine.createGame(worldModel, rules, playerEntityId, taxonomy, patterns, options);
           await this.context.emitEvent(
             new GameCreatedEvent({
               projectId: playerEntityId ?? 'default',
@@ -193,6 +193,9 @@ export class NarrativeEnginePlugin implements IPlugin {
         }
       },
 
+      dryRun: (state, triggerId) => engine.dryRunWith(state, triggerId),
+      diffWorlds: (before, after) => engine.diffWorlds(before, after),
+
       rewindTo: (state, index) => engine.rewindTo(state, index),
       bootGame: (state) => engine.bootGame(state),
       resetGame: (state) => engine.resetGame(state),
@@ -244,12 +247,20 @@ export class NarrativeEnginePlugin implements IPlugin {
       api: this.languageToolsService as any
     });
 
+    // 5. Register RuleEffects capability (DO verb handlers from domain plugins)
+    this.context.registerCapability({
+      name: 'RuleEffects',
+      version: '1.0.0',
+      provider: this.manifest.name,
+      api: engine.ruleEffectsService as any
+    });
+
     // Run init hook if defined
     if (this.manifest.hooks?.init) {
       await this.manifest.hooks.init();
     }
 
-    this.context.logger.info('Lume Narrative Engine Plugin activated successfully with 4 capabilities.');
+    this.context.logger.info('Lume Narrative Engine Plugin activated successfully with 5 capabilities.');
   }
 
   async deactivate(): Promise<void> {

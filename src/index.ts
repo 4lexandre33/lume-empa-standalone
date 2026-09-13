@@ -10,6 +10,7 @@ export * from './bootstrap.ts';
 export * as NarrativeEnginePlugin from './plugins/narrative-engine/index.ts';
 export * as ProjectCloudPlugin from './plugins/project-cloud/index.ts';
 export * as IdeStatePlugin from './plugins/ide-state/index.ts';
+export * as IntentEnginePlugin from './plugins/intent-engine/index.ts';
 export * as IdeUiPlugin from './plugins/ide-ui/index.ts';
 export * as IdeGuidePlugin from './plugins/ide-guide/index.ts';
 export * as IdeSettingsPlugin from './plugins/ide-settings/index.ts';

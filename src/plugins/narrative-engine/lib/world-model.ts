@@ -97,7 +97,7 @@ export function parseDottedEntity(line: string, startLine = 1): Entity {
 
 function splitSections(body: string): Record<string, string> {
   const out: Record<string, string> = {};
-  const re = /(tags|stats|links|name|description)\s*:/gi;
+  const re = /(tags|stats|links|name|description|voice)\s*:/gi;
   const hits: { key: string; index: number; end: number }[] = [];
   let m: RegExpExecArray | null;
   while ((m = re.exec(body))) {
@@ -146,6 +146,7 @@ export function parseBlockEntity(id: string, body: string, startLine = 1): Entit
   }
   if (sections.name) entity.extra!.name = unquote(sections.name);
   if (sections.description) entity.extra!.description = unquote(sections.description);
+  if (sections.voice) entity.extra!.voice = unquote(sections.voice);
   if (entity.extra && Object.keys(entity.extra).length === 0) delete entity.extra;
   return entity;
 }
@@ -292,7 +293,8 @@ export function serializeEntityBlock(entity: Entity): string {
     .join(", ");
   const name = entity.extra?.name ? `\nname: ${entity.extra.name};` : "";
   const desc = entity.extra?.description ? `\ndescription: ${JSON.stringify(entity.extra.description)};` : "";
-  return `${entity.id}.{\ntags: ${tags};\nstats: ${stats};\nlinks: ${links};${name}${desc}\n}`;
+  const voice = entity.extra?.voice ? `\nvoice: ${entity.extra.voice};` : "";
+  return `${entity.id}.{\ntags: ${tags};\nstats: ${stats};\nlinks: ${links};${name}${desc}${voice}\n}`;
 }
 
 export function blankEntityBlock(id: string): string {

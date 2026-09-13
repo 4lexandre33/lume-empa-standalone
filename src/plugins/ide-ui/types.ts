@@ -43,6 +43,11 @@ export interface IdeComponentsMap {
   Guide: React.ComponentType;
   Reference: React.ComponentType<{ onClose: () => void }>;
   ConfigPane: React.ComponentType;
+  Skein: React.ComponentType;
+  WorldMap: React.ComponentType;
+  BeatDebug: React.ComponentType;
+  WorldIndex: React.ComponentType<{ onClose: () => void }>;
+  PlaySkin: React.ComponentType;
 }
 
 export interface IdeUIService {

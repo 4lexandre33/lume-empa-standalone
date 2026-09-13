@@ -8,14 +8,14 @@ export const EXAMPLE_CATALOG: ExampleMeta[] = [
     name: "Caverna do Goblin",
     genre: "Aventura",
     blurb: "Tocha, escuridão, um goblin que não devia ser acordado.",
-    teaches: "Tags, taxonomia, stats, links, IF.",
+    teaches: "Tags, taxonomia, stats, links, IF, JOGADOR.intent.",
   },
   {
     id: "planetarium",
     name: "Planetário das Nove",
     genre: "Astronomia",
     blurb: "A cúpula está morta. A astrônoma pede a carta e a lente.",
-    teaches: "{ENTIDADE.name}, $.name, relíquias, ciclo {a | b | c}.",
+    teaches: "{ENTIDADE.name}, $.name, relíquias, ciclo {a | b | c}, IF intent.",
   },
 ];
 
@@ -103,17 +103,61 @@ DO: GOBLIN.-sleeping
     JOGADOR.fear=9
 narrativa: "Nunca se deve cutucar a onça com vara curta."
 
+# atacar goblin
+ON: GOBLIN.sleeping
+IF: JOGADOR.intent=attack
+DO: GOBLIN.-sleeping
+    JOGADOR.fear=9
+narrativa: "Nunca se deve cutucar a onça com vara curta."
+
+# falar com goblin
+ON: GOBLIN.sleeping
+IF: JOGADOR.intent=talk
+narrativa: "O goblin ronca. Melhor não cutucá-lo."
+
+# comunicar com goblin
+ON: GOBLIN.sleeping
+IF: JOGADOR.intent=communicate
+narrativa: "O goblin ronca. Melhor não cutucá-lo."
+
 # goblin acordado
 ON: *.monster.!sleeping
 narrativa: "O goblin olha para você. Não deveria ter acordado."
+
+# atacar goblin acordado
+ON: *.monster.!sleeping
+IF: JOGADOR.intent=attack
+narrativa: "O goblin olha para você. Não deveria ter acordado."
+
+# falar com goblin acordado
+ON: *.monster.!sleeping
+IF: JOGADOR.intent=talk
+narrativa: "O goblin rosna. Não parece de conversa."
+
+# comunicar com goblin acordado
+ON: *.monster.!sleeping
+IF: JOGADOR.intent=communicate
+narrativa: "O goblin rosna. Não parece de conversa."
 
 # pegar objeto
 ON: *.object.!current_location=JOGADOR
 DO: $.current_location=JOGADOR
 narrativa: "Você pega {$.name}."
 
+# pegar com intent
+ON: *.object.!current_location=JOGADOR
+IF: JOGADOR.intent=take
+DO: $.current_location=JOGADOR
+narrativa: "Você pega {$.name}."
+
 # andar
 ON: *.place
+DO: JOGADOR.current_location=$
+narrativa: "Você vai para {$.name}."
+
+# andar com intent
+ON: *.place
+IF: JOGADOR.intent=move
 DO: JOGADOR.current_location=$
 narrativa: "Você vai para {$.name}."
 `;
@@ -179,8 +223,28 @@ narrativa: "A sessão das nove não começou. A {ASTRONOMA.name} não levanta a 
 ON: ASTRONOMA
 narrativa: "{Ela não se vira. 'A carta. A lente.' | 'Sem as duas, a cúpula continua morta.' | Ela já disse o que precisava.}"
 
+# falar com astrônoma
+ON: ASTRONOMA
+IF: JOGADOR.intent=talk
+narrativa: "{Ela não se vira. 'A carta. A lente.' | 'Sem as duas, a cúpula continua morta.' | Ela já disse o que precisava.}"
+
+# comunicar com astrônoma
+ON: ASTRONOMA
+IF: JOGADOR.intent=communicate
+narrativa: "{Ela não se vira. 'A carta. A lente.' | 'Sem as duas, a cúpula continua morta.' | Ela já disse o que precisava.}"
+
 # zelador ciclo
 ON: ZELADOR
+narrativa: "{O zelador sacode um pano. 'A lente está aí, embaixo da poeira.' | 'Não peço a chave. A cúpula é que pede.' | Ele já varreu o suficiente.}"
+
+# falar com zelador
+ON: ZELADOR
+IF: JOGADOR.intent=talk
+narrativa: "{O zelador sacode um pano. 'A lente está aí, embaixo da poeira.' | 'Não peço a chave. A cúpula é que pede.' | Ele já varreu o suficiente.}"
+
+# comunicar com zelador
+ON: ZELADOR
+IF: JOGADOR.intent=communicate
 narrativa: "{O zelador sacode um pano. 'A lente está aí, embaixo da poeira.' | 'Não peço a chave. A cúpula é que pede.' | Ele já varreu o suficiente.}"
 
 # acender cúpula
@@ -197,10 +261,22 @@ ON: *.object.!current_location=JOGADOR
 DO: $.current_location=JOGADOR
 narrativa: "Você pega {$.name}."
 
+# pegar com intent
+ON: *.object.!current_location=JOGADOR
+IF: JOGADOR.intent=take
+DO: $.current_location=JOGADOR
+narrativa: "Você pega {$.name}."
+
 ON: *.relic.current_location=JOGADOR
 narrativa: "A relíquia {$.name} brilha na palma. Ainda é um objeto — e a cúpula precisa dela."
 
 ON: *.place
+DO: JOGADOR.current_location=$
+narrativa: "Você vai para {$.name}."
+
+# andar com intent
+ON: *.place
+IF: JOGADOR.intent=move
 DO: JOGADOR.current_location=$
 narrativa: "Você vai para {$.name}."
 `;

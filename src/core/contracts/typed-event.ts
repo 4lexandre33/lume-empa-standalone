@@ -275,3 +275,64 @@ export class GameErrorEvent extends TypedEvent<{
     super(data);
   }
 }
+
+export class WorldEventOccurredEvent extends TypedEvent<{
+  eventId: string;
+  triggerId?: string;
+  ruleId?: string | null;
+}> {
+  readonly type = 'lume:world-event';
+  readonly version = 1;
+  constructor(data: WorldEventOccurredEvent['data']) {
+    super(data);
+  }
+}
+
+export class KnowledgeUpdatedEvent extends TypedEvent<{
+  agentId: string;
+  factId: string;
+}> {
+  readonly type = 'lume:knowledge-updated';
+  readonly version = 1;
+  constructor(data: KnowledgeUpdatedEvent['data']) {
+    super(data);
+  }
+}
+
+export class IntentDispatchedEvent extends TypedEvent<{
+  actorId: string;
+  command: string;
+  executed: boolean;
+}> {
+  readonly type = 'lume:intent-dispatched';
+  readonly version = 1;
+  constructor(data: IntentDispatchedEvent['data']) {
+    super(data);
+  }
+}
+
+export class ExternalPluginEvent extends TypedEvent<{
+  plugin: string;
+  topic: string;
+  payload: unknown;
+}> {
+  readonly type = 'lume:ext-plugin';
+  readonly version = 1;
+  constructor(data: ExternalPluginEvent['data']) {
+    super(data);
+  }
+}
+
+export class StorySiftedEvent extends TypedEvent<{
+  projectId: string;
+  patternId: string;
+  name: string;
+  hits: { id: string; name: string; at: number }[];
+}> {
+  readonly type = 'lume:story-sifted';
+  readonly version = 1;
+  constructor(data: StorySiftedEvent['data']) {
+    super(data);
+  }
+}
+

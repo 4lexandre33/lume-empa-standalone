@@ -32,6 +32,27 @@ function propOf(id: string, key: string, world: WorldModel): string {
   return "";
 }
 
+export function voiceOf(world: WorldModel, triggerId: string, playerId?: string): string {
+  const raw =
+    world.get(triggerId)?.extra?.voice ??
+    (playerId ? world.get(playerId)?.extra?.voice : undefined) ??
+    world.get("NARRADOR")?.extra?.voice ??
+    "";
+  return raw.trim().toLowerCase();
+}
+
+export function pickNarrative(
+  narrative: string,
+  voices: Record<string, string> | undefined,
+  world: WorldModel,
+  triggerId: string,
+  playerId?: string,
+): string {
+  const voice = voiceOf(world, triggerId, playerId);
+  if (voice && voices?.[voice]) return voices[voice]!;
+  return narrative;
+}
+
 export type NarrativeCtx = {
   worldModel: WorldModel;
   triggerId: string;

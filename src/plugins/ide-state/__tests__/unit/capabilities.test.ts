@@ -5,6 +5,7 @@ import { NARRATIVE_ENGINE_MANIFEST, createNarrativeEnginePlugin } from '../../..
 import { PROJECT_CLOUD_MANIFEST, createProjectCloudPlugin } from '../../../project-cloud/index.ts';
 import { IDE_STATE_MANIFEST, createIdeStatePlugin } from '../../index.ts';
 import type { IdeStateService } from '../../types.ts';
+import { createExampleProject } from '../../../narrative-engine/lib/examples.ts';
 
 describe('IDE State Capabilities', () => {
   let core: Core;
@@ -58,5 +59,35 @@ describe('IDE State Capabilities', () => {
     // Rewind
     store.getState().rewindTo(0);
     assert.ok(store.getState().game);
+    assert.ok(store.getState().skein);
+    const session = store.getState().exportSessionJson();
+    assert.ok(session);
+    assert.ok(Array.isArray(session.triggerIds));
+    store.getState().interact('JOGADOR');
+    assert.ok(store.getState().skein.children.length > 0);
+    assert.equal(store.getState().importSessionJson(session), true);
+    assert.deepEqual(
+      store.getState().game?.history.map((b) => b.triggerId),
+      session.triggerIds,
+    );
+  });
+
+  it('executes typed commands through the CommandBar store API', () => {
+    const store = core.getService<IdeStateService>('IdeState').getStore();
+    const example = createExampleProject('goblin-cave');
+    store.getState().newBlank();
+    store.getState().setEntities(example.entitiesSource);
+    store.getState().setRules(example.rulesSource);
+    store.getState().setTaxonomy(example.taxonomySource);
+    store.getState().recompile();
+    store.getState().bootPreview(true);
+
+    const families = store.getState().suggestCommands('intent.').map((s) => s.token);
+    assert.deepEqual(families, ['action', 'cognize', 'perceive']);
+
+    assert.equal(store.getState().executeCommand('intent.action.interact.take.TOCHA'), true);
+    assert.equal(store.getState().game?.worldModel.get('TOCHA')?.links.current_location, 'JOGADOR');
+    assert.equal(store.getState().executeCommand('intent.action.interact.attack.GOBLIN'), false);
+    assert.equal(store.getState().game?.worldModel.get('GOBLIN')?.tags.has('sleeping'), true);
   });
 });

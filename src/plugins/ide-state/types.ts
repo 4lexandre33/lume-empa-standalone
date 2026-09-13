@@ -11,9 +11,11 @@ import type {
   TagMatchMode
 } from '../narrative-engine/types.ts';
 import type { IdeSettings } from '../project-cloud/types.ts';
+import type { IntentResolution, IntentSuggestion } from '../intent-engine/types.ts';
+import type { SkeinNode, SessionJson } from '../narrative-engine/lib/index.ts';
 
 export type EditorTab = 'entities' | 'taxonomy' | 'rules' | 'config';
-export type IdeScreen = 'welcome' | 'ide' | 'guide';
+export type IdeScreen = 'welcome' | 'ide' | 'guide' | 'play';
 export type MobilePane = 'tree' | 'editor' | 'play';
 
 export interface SourceFocus {
@@ -45,6 +47,11 @@ export interface IdeStateSnapshot {
   inspectorMode: TagMatchMode;
   mobilePane: MobilePane;
   inspectorOpen: boolean;
+  skein: SkeinNode;
+  skeinOpen: boolean;
+  mapOpen: boolean;
+  lastCommand: string | null;
+  lastNotice: string | null;
 }
 
 export interface IdeStoreActions {
@@ -75,9 +82,25 @@ export interface IdeStoreActions {
   revealTag: (tag: string) => void;
   focusSource: (file: 'entities' | 'rules' | 'taxonomy', line: number) => void;
   interact: (id: string) => void;
+  suggestCommands: (text: string) => IntentSuggestion[];
+  resolveCommand: (text: string) => IntentResolution | null;
+  executeCommand: (text: string) => boolean;
   rewindTo: (index: number) => void;
+  rewindSkein: (triggerIds: string[]) => void;
+  exportSessionJson: () => SessionJson | null;
+  importSessionJson: (raw: unknown) => boolean;
+  importPlayBundle: (raw: unknown) => boolean;
+  consumeShareHash: () => boolean;
+  setSkeinOpen: (open: boolean) => void;
+  setMapOpen: (open: boolean) => void;
+  openPlay: () => void;
+  closePlay: () => void;
   insertEntity: () => string | null;
   insertRule: () => string | null;
+  createSidebarFolder: (kind: "entities" | "rules", section: string) => string | null;
+  renameSidebarFolder: (kind: "entities" | "rules", section: string, folderId: string, name: string) => void;
+  deleteSidebarFolder: (kind: "entities" | "rules", section: string, folderId: string) => void;
+  placeSidebarItem: (kind: "entities" | "rules", section: string, itemId: string, folderId: string | null) => void;
   deleteSelected: () => void;
   deleteCurrent: () => void;
   setToast: (msg: string | null) => void;

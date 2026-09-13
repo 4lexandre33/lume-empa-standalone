@@ -13,7 +13,7 @@ export function ConfigPane() {
 
   return (
     <div className="min-h-0 flex-1 overflow-auto p-5">
-      <h2 className="text-xs tracking-[0.14em] text-muted uppercase">História</h2>
+      <h2 className="text-[10px] font-medium tracking-[0.14em] text-muted uppercase">História</h2>
       <label className="mt-3 block text-sm text-muted">Nome</label>
       <input
         value={project.meta.name}
@@ -32,7 +32,7 @@ export function ConfigPane() {
 
       {entity ? (
         <section className="mt-8 max-w-md">
-          <h2 className="text-xs tracking-[0.14em] text-muted uppercase">Propriedades visíveis · {entity.id}</h2>
+          <h2 className="text-[10px] font-medium tracking-[0.14em] text-muted uppercase">Propriedades visíveis · {entity.id}</h2>
           <p className="mt-2 text-sm text-subtle">
             name não é tag. É o texto que {`{${entity.id}.name}`} e {`{$.name}`} leem. Também pode ir no bloco, na linha name:.
           </p>
@@ -53,6 +53,18 @@ export function ConfigPane() {
       ) : (
         <p className="mt-8 text-sm text-subtle">Selecione uma entidade na árvore para editar name e description.</p>
       )}
+
+      <section className="mt-10 max-w-md">
+        <h2 className="text-[10px] font-medium tracking-[0.14em] text-muted uppercase">Plugins externos</h2>
+        <p className="mt-2 text-sm text-subtle">Sandbox `ext-*`. Kit gerado pelo site. Vários plugins ao mesmo tempo.</p>
+        <button
+          type="button"
+          className="mt-3 h-9 rounded-xs border border-border px-3 text-sm text-fg hover:bg-surface"
+          onClick={() => window.dispatchEvent(new Event("lume:open-ext-plugins"))}
+        >
+          Abrir painel
+        </button>
+      </section>
     </div>
   );
 }

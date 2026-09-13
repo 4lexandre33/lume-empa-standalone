@@ -1,13 +1,21 @@
 import { makeIssue } from "./lexer.ts";
 import { compileRuleFile, type Rule } from "./rule-engine.ts";
+import { parsePadrao, type SiftPattern } from "./sift.ts";
 import { compileTaxonomy, effectiveTags, type CompiledTaxonomy } from "./taxonomy.ts";
 import { attachEntityExtras, compileEntityFile, preprocessEntityFile } from "./world-model.ts";
 import { migrateLegacyTags, VIEW_TAGS, type Issue, type WorldModel } from "./types.ts";
+import { validateWorld } from "./world-index.ts";
 
 export const CURRENT_FORMAT_VERSION = 2;
 
 export type ProjectMeta = { id: string; name: string; version: number; createdAt: string; updatedAt: string };
-export type ProjectSettings = { playerEntityId: string; debug: boolean };
+export type SidebarFolder = { id: string; name: string };
+export type SidebarBucket = { folders: SidebarFolder[]; placements: Record<string, string> };
+export type SidebarTree = {
+  entities: Record<string, SidebarBucket>;
+  rules: Record<string, SidebarBucket>;
+};
+export type ProjectSettings = { playerEntityId: string; debug: boolean; tree?: SidebarTree };
 export type Project = {
   formatVersion: number;
   meta: ProjectMeta;
@@ -21,6 +29,7 @@ export type ProjectIndexEntry = { id: string; name: string; updatedAt: string };
 export type CompileProjectResult = {
   worldModel: WorldModel;
   rules: Rule[];
+  patterns: SiftPattern[];
   taxonomy: CompiledTaxonomy;
   errors: Issue[];
   warnings: Issue[];
@@ -67,8 +76,59 @@ export function cloneProject(project: Project): Project {
     taxonomySource: project.taxonomySource,
     rulesSource: project.rulesSource,
     extras: Object.fromEntries(Object.entries(project.extras).map(([k, v]) => [k, { ...v }])),
-    settings: { ...project.settings },
+    settings: cloneSettings(project.settings),
   };
+}
+
+function cloneBucket(bucket: SidebarBucket): SidebarBucket {
+  return {
+    folders: bucket.folders.map((folder) => ({ ...folder })),
+    placements: { ...bucket.placements },
+  };
+}
+
+function cloneTree(tree: SidebarTree): SidebarTree {
+  const copy = (input: Record<string, SidebarBucket>): Record<string, SidebarBucket> =>
+    Object.fromEntries(Object.entries(input).map(([key, bucket]) => [key, cloneBucket(bucket)]));
+  return { entities: copy(tree.entities), rules: copy(tree.rules) };
+}
+
+function cloneSettings(settings: ProjectSettings): ProjectSettings {
+  return {
+    playerEntityId: settings.playerEntityId,
+    debug: settings.debug,
+    tree: settings.tree ? cloneTree(settings.tree) : undefined,
+  };
+}
+
+function coerceBucket(raw: unknown): SidebarBucket {
+  const value = raw && typeof raw === "object" ? (raw as Record<string, unknown>) : {};
+  const foldersIn = Array.isArray(value.folders) ? value.folders : [];
+  const folders: SidebarFolder[] = [];
+  for (const item of foldersIn) {
+    if (!item || typeof item !== "object") continue;
+    const folder = item as Record<string, unknown>;
+    if (typeof folder.id !== "string" || !folder.id) continue;
+    folders.push({ id: folder.id, name: typeof folder.name === "string" && folder.name.trim() ? folder.name : "Pasta" });
+  }
+  const placements: Record<string, string> = {};
+  if (value.placements && typeof value.placements === "object") {
+    for (const [id, folderId] of Object.entries(value.placements as Record<string, unknown>)) {
+      if (typeof folderId === "string" && folderId) placements[id] = folderId;
+    }
+  }
+  return { folders, placements };
+}
+
+function coerceBuckets(raw: unknown): Record<string, SidebarBucket> {
+  if (!raw || typeof raw !== "object") return {};
+  return Object.fromEntries(Object.entries(raw as Record<string, unknown>).map(([key, bucket]) => [key, coerceBucket(bucket)]));
+}
+
+function coerceTree(raw: unknown): SidebarTree | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const value = raw as Record<string, unknown>;
+  return { entities: coerceBuckets(value.entities), rules: coerceBuckets(value.rules) };
 }
 
 export function createProject(
@@ -83,7 +143,11 @@ export function createProject(
     taxonomySource: seed?.taxonomySource ?? BLANK_TAXONOMY,
     rulesSource: seed?.rulesSource ?? BLANK_RULES,
     extras: seed?.extras ? { ...seed.extras } : {},
-    settings: { playerEntityId: seed?.settings?.playerEntityId ?? "JOGADOR", debug: seed?.settings?.debug ?? true },
+    settings: {
+      playerEntityId: seed?.settings?.playerEntityId ?? "JOGADOR",
+      debug: seed?.settings?.debug ?? true,
+      tree: seed?.settings?.tree ? cloneTree(seed.settings.tree) : undefined,
+    },
   };
 }
 
@@ -95,6 +159,7 @@ export function compileProject(project: Project): CompileProjectResult {
   return {
     worldModel,
     rules: compiledRules.rules,
+    patterns: parsePadrao(project.rulesSource),
     taxonomy,
     errors: [...entities.errors, ...compiledRules.errors],
     warnings: [...entities.warnings, ...compiledRules.warnings],
@@ -113,6 +178,7 @@ export function diagnose(project: Project): { compiled: CompileProjectResult; is
     if (referenced.has(entity.id)) continue;
     issues.push(makeIssue("W003", "warning", { id: entity.id }, { file: "entities", line: 1, column: 1 }));
   }
+  issues.push(...validateWorld(compiled.worldModel, compiled.rules, compiled.taxonomy));
   return { compiled, issues };
 }
 
@@ -142,6 +208,7 @@ export function coerceProject(raw: unknown): Project {
     settings: {
       playerEntityId: typeof settings.playerEntityId === "string" ? settings.playerEntityId : "JOGADOR",
       debug: settings.debug !== false,
+      tree: coerceTree(settings.tree),
     },
   };
 }

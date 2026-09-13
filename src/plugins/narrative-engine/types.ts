@@ -27,7 +27,23 @@ export type {
   Vocabulary,
   ExampleMeta,
   ProjectIndexEntry,
-  WireProject
+  WireProject,
+  ChangeAST,
+  EffectOp,
+  SemanticKind,
+  EffectHandler,
+  EffectContext,
+  RuleEffectsService,
+  DryRunReport,
+  WorldDiff,
+  EntityDiff,
+  DryRunCandidate,
+  SiftPattern,
+  SiftHit,
+  CreateGameOptions,
+  SessionJson,
+  SkeinNode,
+  BeatTrace
 } from './lib/index.ts';
 
 import type {
@@ -51,7 +67,11 @@ import type {
   MatcherAST,
   MatcherExplain,
   Vocabulary,
-  ExampleMeta
+  ExampleMeta,
+  DryRunReport,
+  WorldDiff,
+  SiftPattern,
+  CreateGameOptions
 } from './lib/index.ts';
 
 export interface NarrativeEngineService {
@@ -61,16 +81,22 @@ export interface NarrativeEngineService {
     worldModel: WorldModel,
     rules: readonly Rule[],
     playerEntityId?: string,
-    taxonomy?: CompiledTaxonomy
+    taxonomy?: CompiledTaxonomy,
+    patterns?: readonly SiftPattern[],
+    options?: CreateGameOptions
   ): GameState;
   createGameAsync(
     worldModel: WorldModel,
     rules: readonly Rule[],
     playerEntityId?: string,
-    taxonomy?: CompiledTaxonomy
+    taxonomy?: CompiledTaxonomy,
+    patterns?: readonly SiftPattern[],
+    options?: CreateGameOptions
   ): Promise<GameState>;
   interact(state: GameState, triggerId: string): GameState;
   interactAsync(state: GameState, triggerId: string): Promise<GameState>;
+  dryRun(state: GameState, triggerId: string): DryRunReport;
+  diffWorlds(before: WorldModel, after: WorldModel): WorldDiff;
   rewindTo(state: GameState, index: number): GameState;
   bootGame(state: GameState): GameState;
   resetGame(state: GameState): GameState;

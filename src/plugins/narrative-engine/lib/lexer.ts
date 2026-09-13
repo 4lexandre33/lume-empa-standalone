@@ -12,6 +12,10 @@ export const ERROR_CATALOG = {
   E013: "Linha de taxonomia inválida: {detail}",
   W001: 'Regra "{id}" nunca pode disparar no estado inicial',
   W003: 'Entidade "{id}" não é referenciada (possivelmente órfã)',
+  W010: 'Topic "{id}" sem regra ask',
+  W011: 'links.conv de "{id}" aponta para "{target}" inexistente',
+  W012: 'Canal "{id}" sem 2 estados',
+  W013: 'Agente vivo "{id}" sem regra de reacção',
 } as const;
 
 export type ErrorCode = keyof typeof ERROR_CATALOG;

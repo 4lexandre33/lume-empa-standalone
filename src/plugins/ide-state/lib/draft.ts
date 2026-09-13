@@ -5,7 +5,7 @@ const KEY = "lume:session:v1";
 
 export type SessionDraft = {
   project: Project | null;
-  screen: "welcome" | "ide" | "guide";
+  screen: "welcome" | "ide" | "guide" | "play";
   tab: "entities" | "taxonomy" | "rules" | "config";
   onboarding: IdeSettings["onboarding"];
 };
@@ -21,9 +21,10 @@ export function readSessionDraft(): SessionDraft | null {
       parsed.tab === "rules" || parsed.tab === "config" || parsed.tab === "taxonomy" ? parsed.tab : "entities";
     const onboarding: IdeSettings["onboarding"] =
       parsed.onboarding === "skipped" || parsed.onboarding === "done" ? parsed.onboarding : "pending";
-    let screen: SessionDraft["screen"] = parsed.screen === "guide" ? "guide" : parsed.screen === "ide" ? "ide" : "welcome";
+    let screen: SessionDraft["screen"] =
+      parsed.screen === "guide" ? "guide" : parsed.screen === "play" ? "play" : parsed.screen === "ide" ? "ide" : "welcome";
     if (project && screen === "welcome") screen = "ide";
-    if (!project && screen === "ide") screen = "welcome";
+    if (!project && (screen === "ide" || screen === "play")) screen = "welcome";
     return { project, screen, tab, onboarding };
   } catch {
     return null;

@@ -12,13 +12,14 @@ describe('Narrative Engine Plugin Manifest', () => {
   it('declares all 4 primary capabilities', () => {
     const provides = NARRATIVE_ENGINE_MANIFEST.capabilities?.provides;
     assert.ok(provides);
-    assert.equal(provides.length, 4);
+    assert.equal(provides.length, 5);
 
     const names = provides.map(p => p.name);
     assert.ok(names.includes('NarrativeEngine'));
     assert.ok(names.includes('Taxonomy'));
     assert.ok(names.includes('QueryEngine'));
     assert.ok(names.includes('LanguageTools'));
+    assert.ok(names.includes('RuleEffects'));
   });
 
   it('specifies allowed event topics', () => {

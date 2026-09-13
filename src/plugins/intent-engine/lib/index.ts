@@ -1,0 +1,10 @@
+export { intentCatalog, catalogPathOf } from "./catalog.ts";
+export { parseIntent, catalogPathFromIntent, splitCommands, lastCommandText, joinCommandHead } from "./parser.ts";
+export { suggestIntent, resolveIntent, type QueryFn } from "./resolver.ts";
+export { executeIntent, type InteractFn } from "./adapter.ts";
+export { DRY_RUN_NOTICE, HUMAN_FALLBACK } from "./notices.ts";
+export { registerPhraseMapper, mapPhrase, looksLikeIntent } from "./phrase.ts";
+export { commandFromChoice } from "./choice.ts";
+export { applySuggestion, isAutocompleteSlot } from "./complete.ts";
+export { knownIdsFromHistory, knowledgeFromHistory, presentIntent } from "./present.ts";
+export { scopeFromHost } from "./scope.ts";

@@ -1,6 +1,9 @@
-import { parseNarrative, renderMarkdown, humanizeEntityId } from "./narrative.ts";
+import { parseNarrative, pickNarrative, renderMarkdown, humanizeEntityId } from "./narrative.ts";
 import { query } from "./query.ts";
+import { applyRuleEffects, MAX_EFFECT_DEPTH } from "./rule-effects.ts";
 import { applyChanges, findMatchingRule, findMatchingRules, type Rule, type RuleMatch } from "./rule-engine.ts";
+import { emptyBeat, matchTrace, vivosFromHistory, type BeatTrace } from "./beat.ts";
+import { matchSift, type SiftHit, type SiftPattern } from "./sift.ts";
 import { EMPTY_TAXONOMY, type CompiledTaxonomy } from "./taxonomy.ts";
 import type { WorldModel } from "./types.ts";
 import { cloneWorldModel, getLink } from "./world-model.ts";
@@ -18,6 +21,10 @@ export type GameState = {
   lastRule: Rule | null;
   lastCandidates: RuleMatch[];
   history: GameBeat[];
+  patterns: readonly SiftPattern[];
+  sifted: readonly SiftHit[];
+  seed: string;
+  lastBeat: BeatTrace;
 };
 export type GameView = {
   currentLocation: string | null;
@@ -34,11 +41,15 @@ export function entityDescription(world: WorldModel, id: string): string {
   return world.get(id)?.extra?.description ?? "";
 }
 
+export type CreateGameOptions = { seed?: string };
+
 export function createGame(
   worldModel: WorldModel,
   rules: readonly Rule[],
   playerEntityId = "JOGADOR",
   taxonomy: CompiledTaxonomy = EMPTY_TAXONOMY,
+  patterns: readonly SiftPattern[] = [],
+  options: CreateGameOptions = {},
 ): GameState {
   return {
     worldModel: cloneWorldModel(worldModel),
@@ -52,39 +63,68 @@ export function createGame(
     lastRule: null,
     lastCandidates: [],
     history: [],
+    patterns,
+    sifted: [],
+    seed: options.seed ?? "",
+    lastBeat: emptyBeat(),
   };
 }
 
+let effectDepth = 0;
+
 export function interactWith(state: GameState, triggerId: string): GameState {
-  const world = state.worldModel;
-  const tax = state.taxonomy;
-  const candidates = findMatchingRules(triggerId, state.rules, world, tax);
-  const rule = findMatchingRule(triggerId, state.rules, world, tax);
-  const key = rule?.id ?? triggerId;
-  const cycleIndex = state.ruleCounts[key] ?? 0;
-  let nextWorld = world;
-  let story = "";
-  if (rule) {
-    nextWorld = applyChanges(world, rule.changes, triggerId);
-    story = parseNarrative(rule.narrative, { worldModel: nextWorld, triggerId, cycleIndex });
-  } else {
-    story = parseNarrative(entityDescription(world, triggerId) || `{${triggerId}.name}`, {
-      worldModel: world,
-      triggerId,
-      cycleIndex,
-    });
+  effectDepth += 1;
+  try {
+    const world = state.worldModel;
+    const tax = state.taxonomy;
+    const candidates = findMatchingRules(triggerId, state.rules, world, tax);
+    const rule = findMatchingRule(triggerId, state.rules, world, tax);
+    const key = rule?.id ?? triggerId;
+    const cycleIndex = state.ruleCounts[key] ?? 0;
+    let nextWorld = world;
+    let story = "";
+    if (rule) {
+      nextWorld = applyChanges(world, rule.changes, triggerId);
+      story = parseNarrative(pickNarrative(rule.narrative, rule.voices, nextWorld, triggerId, state.playerEntityId), {
+        worldModel: nextWorld,
+        triggerId,
+        cycleIndex,
+      });
+    } else {
+      story = parseNarrative(entityDescription(world, triggerId) || `{${triggerId}.name}`, {
+        worldModel: world,
+        triggerId,
+        cycleIndex,
+      });
+    }
+    const beat: GameBeat = { triggerId, ruleId: rule?.id ?? null, story, timestamp: Date.now(), cycleIndex };
+    const history = [...state.history, beat];
+    const trace = matchTrace(triggerId, rule, candidates);
+    const next: GameState = {
+      ...state,
+      worldModel: nextWorld,
+      story,
+      lastInteractionId: triggerId,
+      lastRule: rule,
+      lastCandidates: candidates,
+      ruleCounts: { ...state.ruleCounts, [key]: cycleIndex + 1 },
+      history,
+      sifted: matchSift(history, state.patterns ?? []),
+      lastBeat: effectDepth === 1 ? trace : state.lastBeat ?? emptyBeat(),
+    };
+    if (rule && effectDepth <= MAX_EFFECT_DEPTH) {
+      const after = applyRuleEffects(next, triggerId, rule, interactWith);
+      if (effectDepth !== 1) return after;
+      const extra = after.history.slice(next.history.length);
+      return {
+        ...after,
+        lastBeat: { ...trace, vivos: vivosFromHistory(extra, after.worldModel) },
+      };
+    }
+    return next;
+  } finally {
+    effectDepth -= 1;
   }
-  const beat: GameBeat = { triggerId, ruleId: rule?.id ?? null, story, timestamp: Date.now(), cycleIndex };
-  return {
-    ...state,
-    worldModel: nextWorld,
-    story,
-    lastInteractionId: triggerId,
-    lastRule: rule,
-    lastCandidates: candidates,
-    ruleCounts: { ...state.ruleCounts, [key]: cycleIndex + 1 },
-    history: [...state.history, beat],
-  };
 }
 
 export function bootGame(state: GameState): GameState {
@@ -104,6 +144,8 @@ export function resetGame(state: GameState): GameState {
     lastRule: null,
     lastCandidates: [],
     history: [],
+    sifted: [],
+    lastBeat: emptyBeat(),
   });
 }
 
@@ -112,24 +154,43 @@ export function rewindTo(state: GameState, index: number): GameState {
   const keep = Math.min(index, state.history.length - 1);
   if (keep < 0) return resetGame(state);
   if (keep === state.history.length - 1) return state;
-  let next = createGame(state.initialWorld, state.rules, state.playerEntityId, state.taxonomy);
+  let next = createGame(state.initialWorld, state.rules, state.playerEntityId, state.taxonomy, state.patterns ?? [], {
+    seed: state.seed ?? "",
+  });
   for (let i = 0; i <= keep; i++) {
-    const id = state.history[i]?.triggerId;
-    if (id) next = interactWith(next, id);
+    const beat = state.history[i];
+    if (!beat) continue;
+    const id = beat.triggerId;
+    if (!id) continue;
+    if (id === "start" || next.worldModel.has(id)) {
+      next = interactWith(next, id);
+    } else {
+      const history = [...next.history, beat];
+      next = {
+        ...next,
+        story: beat.story,
+        lastInteractionId: id,
+        lastRule: null,
+        lastCandidates: [],
+        history,
+        sifted: matchSift(history, next.patterns ?? []),
+        lastBeat: emptyBeat(id),
+      };
+    }
   }
   return next;
 }
 
-export function queryGameView(state: GameState): GameView {
-  const { worldModel, playerEntityId, taxonomy } = state;
-  const currentLocation = getLink(worldModel, playerEntityId, "current_location");
-  const q = (m: string) => query(m, worldModel, playerEntityId, taxonomy).map(([id]) => id);
-  const inventory = q(`*.object.!hidden.current_location=${playerEntityId}`);
+export function queryGameView(state: GameState, actorId: string = state.playerEntityId): GameView {
+  const { worldModel, taxonomy } = state;
+  const currentLocation = getLink(worldModel, actorId, "current_location");
+  const q = (m: string) => query(m, worldModel, actorId, taxonomy).map(([id]) => id);
+  const inventory = q(`*.object.!hidden.current_location=${actorId}`);
   const locations = q(`*.place.!hidden`).filter((id) => id !== currentLocation);
-  const itemsHere = q(`*.object.!hidden.current_location=(link ${playerEntityId}.current_location)`);
-  const charsHere = q(`*.agent.!hidden.current_location=(link ${playerEntityId}.current_location)`).filter((id) => id !== playerEntityId);
+  const itemsHere = q(`*.object.!hidden.current_location=(link ${actorId}.current_location)`);
+  const charsHere = q(`*.agent.!hidden.current_location=(link ${actorId}.current_location)`).filter((id) => id !== actorId);
   const more = ["event", "information", "abstract"].flatMap((tag) =>
-    q(`*.${tag}.!hidden.current_location=(link ${playerEntityId}.current_location)`),
+    q(`*.${tag}.!hidden.current_location=(link ${actorId}.current_location)`),
   );
   return { currentLocation, inventory, locations, itemsHere, charsHere: [...charsHere, ...more] };
 }

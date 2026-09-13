@@ -10,3 +10,8 @@ coverage/
 dist/
 *.log
 screenshots/
+artifacts/
+.grok/
+.project_id
+.node_modules.lock
+.DS_Store

@@ -4,15 +4,22 @@ import { BookOpen, GraduationCap, GitBranch } from "lucide-react";
 import { ProjectTree } from "@/components/ide/ProjectTree.tsx";
 import { SourceEditor } from "@/components/ide/SourceEditor.tsx";
 import { PreviewPane } from "@/components/ide/PreviewPane.tsx";
+import { Skein } from "@/components/ide/Skein.tsx";
+import { WorldMap } from "@/components/ide/WorldMap.tsx";
 import { Inspector } from "@/components/ide/Inspector.tsx";
 import { ConfigPane } from "@/components/ide/ConfigPane.tsx";
 import { TaxonomyPane } from "@/components/ide/TaxonomyPane.tsx";
 import { Welcome } from "@/components/ide/Welcome.tsx";
 import { Guide } from "@/components/ide/Guide.tsx";
 import { Reference } from "@/components/ide/Reference.tsx";
+import { WorldIndex } from "@/components/ide/WorldIndex.tsx";
+import { PlaySkin } from "@/components/ide/PlaySkin.tsx";
+import { ExtPluginsWindow } from "../../plugins/ide-ui/lib/components/ExtPluginsWindow.tsx";
 import { useIdeStore } from "@/lib/ide/store.ts";
-import { toWireProject } from "@/lib/engine/index.ts";
+import { toWireProject, buildPlayBundle, encodeSessionHash } from "@/lib/engine/index.ts";
+import { staticPlayHtml, playShareUrl, sessionShareUrl } from "../../plugins/ide-ui/lib/play-html.ts";
 import { cn } from "@/lib/utils.ts";
+import { ensureExtHost } from "../../plugins/ext-host/lib/ensure.ts";
 
 type MenuId = "projeto" | "editar" | "executar" | "depurar" | "ajuda";
 
@@ -54,11 +61,14 @@ function MenuItem({
 export function IdeApp() {
   const screen = useIdeStore((s) => s.screen);
   const project = useIdeStore((s) => s.project);
+  const game = useIdeStore((s) => s.game);
   const tab = useIdeStore((s) => s.tab);
   const toast = useIdeStore((s) => s.toast);
   const busy = useIdeStore((s) => s.busy);
   const mobilePane = useIdeStore((s) => s.mobilePane);
   const inspectorOpen = useIdeStore((s) => s.inspectorOpen);
+  const skeinOpen = useIdeStore((s) => s.skeinOpen);
+  const mapOpen = useIdeStore((s) => s.mapOpen);
   const hydrate = useIdeStore((s) => s.hydrate);
   const booted = useIdeStore((s) => s.booted);
   const setTab = useIdeStore((s) => s.setTab);
@@ -67,6 +77,8 @@ export function IdeApp() {
   const setRules = useIdeStore((s) => s.setRules);
   const setMobilePane = useIdeStore((s) => s.setMobilePane);
   const setInspectorOpen = useIdeStore((s) => s.setInspectorOpen);
+  const setSkeinOpen = useIdeStore((s) => s.setSkeinOpen);
+  const setMapOpen = useIdeStore((s) => s.setMapOpen);
   const setToast = useIdeStore((s) => s.setToast);
   const saveNow = useIdeStore((s) => s.saveNow);
   const newBlank = useIdeStore((s) => s.newBlank);
@@ -79,15 +91,31 @@ export function IdeApp() {
   const resetPreview = useIdeStore((s) => s.resetPreview);
   const startGuide = useIdeStore((s) => s.startGuide);
   const importProject = useIdeStore((s) => s.importProject);
+  const exportSessionJson = useIdeStore((s) => s.exportSessionJson);
+  const importSessionJson = useIdeStore((s) => s.importSessionJson);
+  const openPlay = useIdeStore((s) => s.openPlay);
 
   const [openMenu, setOpenMenu] = useState<MenuId | null>(null);
   const [showRef, setShowRef] = useState(false);
+  const [showIndex, setShowIndex] = useState(false);
+  const [showExt, setShowExt] = useState(false);
   const barRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const sessionRef = useRef<HTMLInputElement>(null);
 
   useLayoutEffect(() => {
     hydrate();
   }, [hydrate]);
+
+  useEffect(() => {
+    void ensureExtHost();
+  }, []);
+
+  useEffect(() => {
+    const open = () => setShowExt(true);
+    window.addEventListener("lume:open-ext-plugins", open);
+    return () => window.removeEventListener("lume:open-ext-plugins", open);
+  }, []);
 
   useEffect(() => {
     function onPointerDown(e: PointerEvent) {
@@ -100,6 +128,7 @@ export function IdeApp() {
       if (e.key === "Escape") {
         setOpenMenu(null);
         setShowRef(false);
+        setShowExt(false);
       }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
         e.preventDefault();
@@ -135,6 +164,48 @@ export function IdeApp() {
     URL.revokeObjectURL(a.href);
   }
 
+  function exportSessionFile() {
+    const session = exportSessionJson();
+    if (!session || !project) return;
+    const blob = new Blob([JSON.stringify(session, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${project.meta.name.replace(/\s+/g, "-").toLowerCase() || "historia"}.sessao.json`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function slug() {
+    return project?.meta.name.replace(/\s+/g, "-").toLowerCase() || "historia";
+  }
+
+  function exportPlayHtml() {
+    if (!project) return;
+    const bundle = buildPlayBundle(project, game);
+    const url = playShareUrl(window.location.origin, window.location.pathname, bundle);
+    const blob = new Blob([staticPlayHtml(bundle, url)], { type: "text/html" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `${slug()}.play.html`;
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function copySessionLink() {
+    const session = exportSessionJson();
+    if (!session) {
+      setToast("Sem sessão para partilhar.");
+      return;
+    }
+    const url = sessionShareUrl(window.location.origin, window.location.pathname, encodeSessionHash(session));
+    if (navigator.clipboard?.writeText) {
+      void navigator.clipboard.writeText(url).then(
+        () => setToast("Ligação da sessão copiada."),
+        () => setToast(url),
+      );
+    } else setToast(url);
+  }
+
   if (!booted) return <div className="min-h-dvh bg-bg" />;
 
   const chrome = (
@@ -162,6 +233,14 @@ export function IdeApp() {
     return (
       <>
         <Welcome />
+        {chrome}
+      </>
+    );
+  }
+  if (screen === "play") {
+    return (
+      <>
+        <PlaySkin />
         {chrome}
       </>
     );
@@ -215,7 +294,16 @@ export function IdeApp() {
                 {m.id === "executar" ? (
                   <>
                     <MenuItem label="Jogar / ligar preview" onSelect={() => closeAnd(() => bootPreview(true))} />
+                    <MenuItem label="Vista do jogador" onSelect={() => closeAnd(openPlay)} />
                     <MenuItem label="Recomeçar" onSelect={() => closeAnd(resetPreview)} />
+                    <MenuItem
+                      label={skeinOpen ? "Ocultar Skein" : "Mostrar Skein"}
+                      onSelect={() => closeAnd(() => setSkeinOpen(!skeinOpen))}
+                    />
+                    <MenuItem label="Exportar play" onSelect={() => closeAnd(exportPlayHtml)} />
+                    <MenuItem label="Exportar sessão" onSelect={() => closeAnd(exportSessionFile)} />
+                    <MenuItem label="Copiar ligação da sessão" onSelect={() => closeAnd(copySessionLink)} />
+                    <MenuItem label="Importar sessão…" onSelect={() => closeAnd(() => sessionRef.current?.click())} />
                   </>
                 ) : null}
                 {m.id === "depurar" ? (
@@ -228,14 +316,20 @@ export function IdeApp() {
                         })
                       }
                     />
+                    <MenuItem
+                      label={mapOpen ? "Ocultar mapa" : "Mostrar mapa"}
+                      onSelect={() => closeAnd(() => setMapOpen(!mapOpen))}
+                    />
                     <MenuItem label="Consulta *.place" onSelect={() => closeAnd(() => useIdeStore.getState().setInspectorQuery("*.place"))} />
                     <MenuItem label="Consulta *.object" onSelect={() => closeAnd(() => useIdeStore.getState().setInspectorQuery("*.object"))} />
+                    <MenuItem label="Índice do mundo" onSelect={() => closeAnd(() => setShowIndex(true))} />
                   </>
                 ) : null}
                 {m.id === "ajuda" ? (
                   <>
                     <MenuItem label="Guia" onSelect={() => closeAnd(startGuide)} />
                     <MenuItem label="Referência da linguagem" onSelect={() => closeAnd(() => setShowRef(true))} />
+                    <MenuItem label="Plugins externos…" onSelect={() => closeAnd(() => setShowExt(true))} />
                   </>
                 ) : null}
               </div>
@@ -270,7 +364,7 @@ export function IdeApp() {
       <div className="flex min-h-0 flex-1">
         <div className="hidden min-h-0 min-w-0 flex-1 md:flex">
           <Group orientation="vertical" className="h-full w-full">
-            <Panel defaultSize={inspectorOpen ? "74" : "100"} minSize="40">
+            <Panel defaultSize={inspectorOpen || mapOpen ? "74" : "100"} minSize="40">
               <Group orientation="horizontal" className="h-full w-full">
                 <Panel defaultSize="20" minSize="14" className="min-h-0">
                   <ProjectTree />
@@ -281,15 +375,38 @@ export function IdeApp() {
                 </Panel>
                 <Separator className="w-px bg-border" />
                 <Panel defaultSize="28" minSize="18" className="min-h-0">
-                  <PreviewPane />
+                  <div className="flex h-full min-h-0 flex-col">
+                    <div className="min-h-0 flex-1">
+                      <PreviewPane />
+                    </div>
+                    {skeinOpen ? (
+                      <div className="h-40 shrink-0 border-t border-border">
+                        <Skein />
+                      </div>
+                    ) : null}
+                  </div>
                 </Panel>
               </Group>
             </Panel>
-            {inspectorOpen ? (
+            {inspectorOpen || mapOpen ? (
               <>
                 <Separator className="h-px bg-border" />
                 <Panel defaultSize="26" minSize="12" className="min-h-0">
-                  <Inspector />
+                  {mapOpen && inspectorOpen ? (
+                    <Group orientation="horizontal" className="h-full w-full">
+                      <Panel defaultSize="50" minSize="20" className="min-h-0">
+                        <WorldMap />
+                      </Panel>
+                      <Separator className="w-px bg-border" />
+                      <Panel defaultSize="50" minSize="20" className="min-h-0">
+                        <Inspector />
+                      </Panel>
+                    </Group>
+                  ) : mapOpen ? (
+                    <WorldMap />
+                  ) : (
+                    <Inspector />
+                  )}
                 </Panel>
               </>
             ) : null}
@@ -300,9 +417,25 @@ export function IdeApp() {
           {mobilePane === "editor" ? (
             <EditorColumn tab={tab} setTab={setTab} project={project} setEntities={setEntities} setTaxonomy={setTaxonomy} setRules={setRules} />
           ) : null}
-          {mobilePane === "play" ? <PreviewPane /> : null}
+          {mobilePane === "play" ? (
+            <div className="flex h-full min-h-0 flex-col">
+              <div className="min-h-0 flex-1">
+                <PreviewPane />
+              </div>
+              {skeinOpen ? (
+                <div className="h-40 shrink-0 border-t border-border">
+                  <Skein />
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
+      {mapOpen ? (
+        <div className="absolute inset-x-0 bottom-0 z-20 h-[45%] border-t border-border md:hidden">
+          <WorldMap />
+        </div>
+      ) : null}
 
       <input
         ref={fileRef}
@@ -322,8 +455,28 @@ export function IdeApp() {
           });
         }}
       />
+      <input
+        ref={sessionRef}
+        type="file"
+        accept="application/json,.json"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          e.target.value = "";
+          if (!f) return;
+          void f.text().then((t) => {
+            try {
+              if (!importSessionJson(JSON.parse(t))) setToast("Sessão inválida.");
+            } catch {
+              setToast("JSON inválido.");
+            }
+          });
+        }}
+      />
 
       {showRef ? <Reference onClose={() => setShowRef(false)} /> : null}
+      {showIndex ? <WorldIndex onClose={() => setShowIndex(false)} /> : null}
+      {showExt ? <ExtPluginsWindow onClose={() => setShowExt(false)} /> : null}
       {chrome}
     </div>
   );

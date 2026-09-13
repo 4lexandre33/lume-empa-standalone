@@ -11,10 +11,20 @@ import {
   createGame,
   createProject,
   diagnose,
+  emptySkein,
+  exportSession,
   fingerprintProject,
   groupEntitiesByPrimaryTag,
   interactWith,
+  mergeSkein,
   newProjectId,
+  parseSession,
+  parseSkein,
+  parsePlayBundle,
+  parseShareHash,
+  query,
+  recordPath,
+  replaySession,
   resetGame,
   rewindTo as rewindGame
 } from '../../narrative-engine/lib/index.ts';
@@ -33,10 +43,17 @@ import {
   deleteProject,
   loadSettings,
   saveSettings,
+  savePlaytest,
+  loadPlaytest,
   DEFAULT_IDE_SETTINGS
 } from '../../project-cloud/lib/persistence.ts';
 import { readSessionDraft, writeSessionDraft } from './draft.ts';
 import type { IdeStore, SourceFocus } from '../types.ts';
+import { commandFromChoice, executeIntent, resolveIntent, suggestIntent, scopeFromHost, looksLikeIntent, DRY_RUN_NOTICE, HUMAN_FALLBACK, type QueryFn } from '../../intent-engine/lib/index.ts';
+import { addFolder, deleteFolder, placeItem, renameFolder } from './tree.ts';
+
+const queryFn: QueryFn = (matcher, world, triggerId, taxonomy) =>
+  query(matcher, world, triggerId, taxonomy, 'effective').map(([id]) => id);
 
 let compileTimer: ReturnType<typeof setTimeout> | null = null;
 let persistTimer: ReturnType<typeof setTimeout> | null = null;
@@ -68,7 +85,8 @@ function openWith(project: Project) {
     tab: 'entities' as const,
     sourceFocus: null as SourceFocus | null,
     mobilePane: 'editor' as const,
-    busy: null as string | null
+    busy: null as string | null,
+    skein: emptySkein()
   };
 }
 
@@ -94,6 +112,26 @@ export function createIdeZustandStore(
       remember();
     }
 
+    function pathOf(game: { history: { triggerId: string }[] }): string[] {
+      return game.history.map((beat) => beat.triggerId);
+    }
+
+    function persistPlaytest() {
+      const { project, game, skein } = get();
+      if (!project || !game) return;
+      const snapshot = { ...exportSession(game), tree: skein };
+      void queued(() => savePlaytest(project.meta.id, snapshot))
+        .then(() => {
+          if (onEventHook) onEventHook('lume:playtest-saved', { projectId: project.meta.id });
+        })
+        .catch(() => undefined);
+    }
+
+    function notePath(game: { history: { triggerId: string }[] }) {
+      set({ skein: recordPath(get().skein, pathOf(game)) });
+      persistPlaytest();
+    }
+
     return {
       ready: true,
       booted: false,
@@ -117,6 +155,11 @@ export function createIdeZustandStore(
       inspectorMode: 'effective',
       mobilePane: 'editor',
       inspectorOpen: true,
+      skein: emptySkein(),
+      skeinOpen: false,
+      mapOpen: false,
+      lastCommand: null,
+      lastNotice: null,
 
       hydrate: () => {
         const draft = readSessionDraft();
@@ -129,6 +172,7 @@ export function createIdeZustandStore(
           });
           get().recompile();
           get().bootPreview(true);
+          if (draft.screen === 'play') set({ screen: 'play' });
         } else if (draft) {
           set({
             settings: { ...get().settings, onboarding: draft.onboarding },
@@ -138,6 +182,7 @@ export function createIdeZustandStore(
         } else {
           set({ booted: true });
         }
+        get().consumeShareHash();
         void (async () => {
           try {
             const [settings, catalog] = await queued(async () => {
@@ -177,6 +222,7 @@ export function createIdeZustandStore(
           .then(() => queued(() => listProjects()).then((catalog) => {
             set({ catalog, savedFingerprint: fp(p), toast: 'Guardado.' });
             if (onEventHook) onEventHook('lume:project-saved', { projectId: p.meta.id });
+            persistPlaytest();
           }))
           .catch(() => set({ toast: 'Não foi possível guardar no servidor. O rascunho ficou neste navegador.' }));
       },
@@ -208,10 +254,26 @@ export function createIdeZustandStore(
         if (!project || !compiled || compiled.errors.length) return;
         if (game && !force) return;
         try {
-          const raw = createGame(compiled.worldModel, compiled.rules, project.settings.playerEntityId, compiled.taxonomy);
+          const raw = createGame(
+            compiled.worldModel,
+            compiled.rules,
+            project.settings.playerEntityId,
+            compiled.taxonomy,
+            compiled.patterns,
+            { seed: game?.seed ?? '' }
+          );
           const bootedState = bootGame(raw);
-          set({ game: bootedState });
+          set({ game: bootedState, lastCommand: null, lastNotice: null, skein: recordPath(get().skein, pathOf(bootedState)) });
           if (onEventHook) onEventHook('lume:game-created', { projectId: project.meta.id, gameState: bootedState });
+          void queued(() => loadPlaytest(project.meta.id))
+            .then((record) => {
+              if (!record?.snapshot) return;
+              const snap = record.snapshot as { tree?: unknown };
+              if (!snap.tree) return;
+              set({ skein: mergeSkein(get().skein, parseSkein(snap.tree)) });
+              if (onEventHook) onEventHook('lume:playtest-loaded', { projectId: project.meta.id, snapshot: record.snapshot });
+            })
+            .catch(() => undefined);
         } catch {
           set({ toast: 'O preview não ligou. Reveja as regras.' });
         }
@@ -224,7 +286,7 @@ export function createIdeZustandStore(
           return;
         }
         const resetState = resetGame(game);
-        set({ game: resetState });
+        set({ game: resetState, lastCommand: null, lastNotice: null });
       },
 
       openWelcome: () => {
@@ -418,11 +480,59 @@ export function createIdeZustandStore(
         const { game } = get();
         if (!game) return;
         try {
+          const command = commandFromChoice(game, id);
+          if (command) {
+            const result = executeIntent(command, game, queryFn, interactWith, { source: 'button', scope: scopeFromHost() });
+            if (result.executed) {
+              set({ game: result.game, lastCommand: command, lastNotice: null });
+              notePath(result.game);
+              if (onEventHook) onEventHook('lume:game-beat', { projectId: game.playerEntityId, gameState: result.game });
+              return;
+            }
+          }
           const nextGame = interactWith(game, id);
-          set({ game: nextGame });
+          set({ game: nextGame, lastCommand: command ?? id, lastNotice: null });
+          notePath(nextGame);
           if (onEventHook) onEventHook('lume:game-beat', { projectId: game.playerEntityId, gameState: nextGame });
         } catch {
           set({ toast: 'Essa interação falhou.' });
+        }
+      },
+
+      suggestCommands: (text) => {
+        const { game } = get();
+        if (!game) return [];
+        return suggestIntent(text, game, queryFn, { scope: scopeFromHost() });
+      },
+
+      resolveCommand: (text) => {
+        const { game } = get();
+        if (!game) return null;
+        return resolveIntent(text, game, queryFn, { scope: scopeFromHost() });
+      },
+
+      executeCommand: (text) => {
+        const { game } = get();
+        if (!game) return false;
+        try {
+          const result = executeIntent(text, game, queryFn, interactWith, { source: 'player', scope: scopeFromHost() });
+          if (result.executed) {
+            set({ game: result.game, lastCommand: text, lastNotice: null });
+            notePath(result.game);
+            if (onEventHook) onEventHook('lume:game-beat', { projectId: game.playerEntityId, gameState: result.game });
+            return true;
+          }
+          const play = get().screen === 'play';
+          const notice = result.dryRun
+            ? DRY_RUN_NOTICE
+            : play || !looksLikeIntent(text)
+              ? HUMAN_FALLBACK
+              : result.resolution.message ?? 'comando não executado.';
+          set({ lastNotice: notice, toast: play ? null : notice });
+          return false;
+        } catch {
+          set({ toast: 'Essa interação falhou.' });
+          return false;
         }
       },
 
@@ -431,7 +541,86 @@ export function createIdeZustandStore(
         if (!game) return;
         const nextGame = rewindGame(game, index);
         set({ game: nextGame });
+        persistPlaytest();
         if (onEventHook) onEventHook('lume:user-clicked-rewind', { projectId: game.playerEntityId, turnIndex: index });
+      },
+
+      rewindSkein: (triggerIds) => {
+        const { game, compiled, project } = get();
+        if (!game || !compiled || !project) return;
+        const session = { seed: game.seed ?? '', initialWorld: exportSession(game).initialWorld, triggerIds };
+        const nextGame = replaySession(session, compiled.rules, project.settings.playerEntityId, compiled.taxonomy, compiled.patterns);
+        set({ game: nextGame });
+        persistPlaytest();
+        if (onEventHook) onEventHook('lume:user-clicked-rewind', { projectId: game.playerEntityId, turnIndex: triggerIds.length - 1 });
+      },
+
+      exportSessionJson: () => {
+        const { game } = get();
+        if (!game) return null;
+        return exportSession(game);
+      },
+
+      importSessionJson: (raw) => {
+        const session = parseSession(raw);
+        const { compiled, project } = get();
+        if (!session || !compiled || !project) {
+          set({ toast: 'Sessão inválida.' });
+          return false;
+        }
+        try {
+          const nextGame = replaySession(session, compiled.rules, project.settings.playerEntityId, compiled.taxonomy, compiled.patterns);
+          set({ game: nextGame, skein: recordPath(get().skein, pathOf(nextGame)) });
+          persistPlaytest();
+          return true;
+        } catch {
+          set({ toast: 'Não foi possível repor a sessão.' });
+          return false;
+        }
+      },
+
+      importPlayBundle: (raw) => {
+        const bundle = parsePlayBundle(raw);
+        if (!bundle) {
+          set({ toast: 'Play inválido.' });
+          return false;
+        }
+        const project = coerceProject(bundle.project);
+        project.meta.id = newProjectId();
+        get().dismissOnboarding();
+        applyProject(project);
+        if (bundle.session) get().importSessionJson(bundle.session);
+        set({ screen: 'play' });
+        remember();
+        return true;
+      },
+
+      consumeShareHash: () => {
+        if (typeof window === 'undefined') return false;
+        const shared = parseShareHash(window.location.hash);
+        if (!shared) return false;
+        window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
+        if (shared.play) return get().importPlayBundle(shared.play);
+        if (shared.session) {
+          const ok = get().importSessionJson(shared.session);
+          if (ok) get().openPlay();
+          return ok;
+        }
+        return false;
+      },
+
+      setSkeinOpen: (open) => set({ skeinOpen: open }),
+      openPlay: () => {
+        const { project } = get();
+        if (!project) return;
+        get().bootPreview();
+        if (!get().game && !get().compiled) get().bootPreview(true);
+        if (get().game || get().compiled) set({ screen: 'play' });
+        remember();
+      },
+      closePlay: () => {
+        set({ screen: 'ide' });
+        remember();
       },
 
       insertEntity: () => {
@@ -462,6 +651,56 @@ export function createIdeZustandStore(
         get().recompile();
         get().persist();
         return out.id;
+      },
+
+      createSidebarFolder: (kind, section) => {
+        const { project } = get();
+        if (!project) return null;
+        const next = addFolder(project.settings.tree, kind, section);
+        set({
+          project: {
+            ...project,
+            settings: { ...project.settings, tree: next.tree }
+          }
+        });
+        get().persist();
+        return next.id;
+      },
+
+      renameSidebarFolder: (kind, section, folderId, name) => {
+        const { project } = get();
+        if (!project) return;
+        set({
+          project: {
+            ...project,
+            settings: { ...project.settings, tree: renameFolder(project.settings.tree, kind, section, folderId, name) }
+          }
+        });
+        get().persist();
+      },
+
+      deleteSidebarFolder: (kind, section, folderId) => {
+        const { project } = get();
+        if (!project) return;
+        set({
+          project: {
+            ...project,
+            settings: { ...project.settings, tree: deleteFolder(project.settings.tree, kind, section, folderId) }
+          }
+        });
+        get().persist();
+      },
+
+      placeSidebarItem: (kind, section, itemId, folderId) => {
+        const { project } = get();
+        if (!project) return;
+        set({
+          project: {
+            ...project,
+            settings: { ...project.settings, tree: placeItem(project.settings.tree, kind, section, itemId, folderId) }
+          }
+        });
+        get().persist();
       },
 
       deleteSelected: () => {
@@ -503,7 +742,8 @@ export function createIdeZustandStore(
         void queued(() => saveSettings(settings)).catch(() => undefined);
       },
       setMobilePane: (mobilePane) => set({ mobilePane }),
-      setInspectorOpen: (inspectorOpen) => set({ inspectorOpen })
+      setInspectorOpen: (inspectorOpen) => set({ inspectorOpen }),
+      setMapOpen: (mapOpen) => set({ mapOpen })
     };
   });
 }

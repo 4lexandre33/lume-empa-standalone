@@ -24,14 +24,20 @@ export type Comparator = "=" | ">" | "<" | ">=" | "<=";
 export type MatcherClause = { negated: boolean; key: string; op?: Comparator; value?: MatcherValue };
 export type MatcherAST = { selector: MatcherSelector; clauses: MatcherClause[]; source: string };
 
-export type ChangeTarget = { kind: "id"; id: EntityId } | { kind: "trigger" };
+export type ChangeTarget =
+  | { kind: "id"; id: EntityId }
+  | { kind: "trigger" }
+  | { kind: "linkLookup"; entityId: EntityId; key: string };
 export type ChangeField =
   | { kind: "addTag"; tag: string }
   | { kind: "removeTag"; tag: string }
   | { kind: "setStat"; key: string; value: number }
   | { kind: "deltaStat"; key: string; delta: number }
+  | { kind: "deltaStatFrom"; key: string; sign: number; from: ChangeTarget; stat: string }
   | { kind: "mulStat"; key: string; factor: number }
-  | { kind: "setLink"; key: string; value: ChangeTarget };
+  | { kind: "setLink"; key: string; value: ChangeTarget }
+  | { kind: "createEntity"; entity: Entity }
+  | { kind: "destroyEntity" };
 export type ChangeAST = { target: ChangeTarget; fields: ChangeField[]; source: string; line?: number };
 
 export type TokenKind =

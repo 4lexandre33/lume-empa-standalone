@@ -15,7 +15,8 @@ export const NARRATIVE_ENGINE_MANIFEST: IPluginManifest = {
       { name: 'NarrativeEngine', version: '1.0.0' },
       { name: 'Taxonomy', version: '1.0.0' },
       { name: 'QueryEngine', version: '1.0.0' },
-      { name: 'LanguageTools', version: '1.0.0' }
+      { name: 'LanguageTools', version: '1.0.0' },
+      { name: 'RuleEffects', version: '1.0.0' }
     ]
   },
 

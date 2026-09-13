@@ -37,7 +37,7 @@ function pgliteBootstrapPlugin(): Plugin {
     async configureServer(server) {
       if (!hasGlobbedMigrations(server.config.root)) return;
       try {
-        const mod = (await server.ssrLoadModule("/src/db/db.ts")) as {
+        const mod = (await server.ssrLoadModule("/src/lib/db.ts")) as {
           ensureDbReady?: () => Promise<void>;
         };
         if (typeof mod.ensureDbReady === "function") {
@@ -148,12 +148,12 @@ function authPopupPlugin(): Plugin {
 export default defineConfig(({ command, isPreview }) => ({
   server: {
     host: "0.0.0.0",
-    port: 5173,
+    port: 8080,
     strictPort: true,
   },
   preview: {
     host: "127.0.0.1",
-    port: 5174,
+    port: 8081,
     strictPort: true,
   },
   resolve: { tsconfigPaths: true },

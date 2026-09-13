@@ -15,8 +15,8 @@ export type SynClass =
 export type HighlightSpan = { text: string; cls: SynClass };
 export type SourceKind = "entities" | "rules" | "taxonomy";
 
-const RULE_KW_RE = /^(ON|IF|DO|NARRATIVE|NARRATIVA)\s*:/i;
-const SECTION_RE = /^(tags|stats|links|name|description)\s*:/i;
+const RULE_KW_RE = /^(ON|IF|DO|NARRATIVE|NARRATIVA|SEMANTIC|SEMANTICS|FUNCAO|FUNÇÃO|FUNCTION|PADRAO)\s*:?/i;
+const SECTION_RE = /^(tags|stats|links|name|description|voice)\s*:/i;
 const TAXONOMY_TOKEN_RE = /[\p{L}_][\p{L}\p{N}\p{M}_]*|→|->/gu;
 
 function tokenClass(tokens: Token[], index: number, isFirstId: boolean): SynClass {

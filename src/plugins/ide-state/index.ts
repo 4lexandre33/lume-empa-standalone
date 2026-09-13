@@ -13,7 +13,9 @@ import {
   ProjectSavedEvent,
   ProjectDeletedEvent,
   UserEditedSourceEvent,
-  UserClickedRewindEvent
+  UserClickedRewindEvent,
+  PlaytestSavedEvent,
+  PlaytestLoadedEvent
 } from '../../core/contracts/typed-event.ts';
 
 import { IDE_STATE_MANIFEST } from './manifest.ts';
@@ -70,7 +72,12 @@ export class IdeStatePlugin implements IPlugin {
           inspectorQuery: s.inspectorQuery,
           inspectorMode: s.inspectorMode,
           mobilePane: s.mobilePane,
-          inspectorOpen: s.inspectorOpen
+          inspectorOpen: s.inspectorOpen,
+          skein: s.skein,
+          skeinOpen: s.skeinOpen,
+          mapOpen: s.mapOpen,
+          lastCommand: s.lastCommand,
+          lastNotice: s.lastNotice
         };
       },
 
@@ -184,6 +191,22 @@ export class IdeStatePlugin implements IPlugin {
             new UserClickedRewindEvent({
               projectId: payload.projectId,
               turnIndex: payload.turnIndex
+            })
+          );
+          break;
+        case 'lume:playtest-saved':
+          await this.context.emitEvent(
+            new PlaytestSavedEvent({
+              projectId: payload.projectId,
+              timestamp: Date.now()
+            })
+          );
+          break;
+        case 'lume:playtest-loaded':
+          await this.context.emitEvent(
+            new PlaytestLoadedEvent({
+              projectId: payload.projectId,
+              snapshot: payload.snapshot
             })
           );
           break;
